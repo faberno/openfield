@@ -4,6 +4,9 @@ import numpy as np
 
 from openfield.responses import TimeResponse
 
+FIELDII_LEADING_PAD_SAMPLES = 1
+FIELDII_TRAILING_PAD_SAMPLES = 5
+
 
 def _points_array(points) -> np.ndarray:
     points = np.asarray(points, dtype=np.float64)
@@ -41,9 +44,13 @@ def spatial_impulse_response(simulation, *, aperture, points) -> TimeResponse:
         raise ValueError("field points must not coincide with aperture elements")
 
     arrival_times = distances / sound_speed + delays[physical_indices][None, :]
-    start_time = float(np.floor(np.min(arrival_times) * fs) / fs)
-    end_time = float(np.ceil(np.max(arrival_times) * fs) / fs)
-    sample_count = int(round((end_time - start_time) * fs)) + 2
+    start_time, sample_count = _fieldii_like_time_axis(
+        aperture=aperture,
+        points=points,
+        delays=delays,
+        sound_speed=sound_speed,
+        sampling_frequency=fs,
+    )
     samples = np.zeros((sample_count, points.shape[0]), dtype=np.float64)
 
     weights = areas[None, :] / (2.0 * np.pi * distances)
@@ -60,3 +67,33 @@ def spatial_impulse_response(simulation, *, aperture, points) -> TimeResponse:
         sampling_frequency=fs,
         start_time=start_time,
     )
+
+
+def _fieldii_like_time_axis(
+    *,
+    aperture,
+    points: np.ndarray,
+    delays: np.ndarray,
+    sound_speed: float,
+    sampling_frequency: float,
+) -> tuple[float, int]:
+    support_times = []
+    for point in points:
+        for element in aperture.elements:
+            support_points = element.vertices
+            if support_points is None:
+                support_points = element.center[None, :]
+            support_times.extend(
+                (
+                    np.linalg.norm(point - support_points, axis=1) / sound_speed
+                    + delays[element.physical_index]
+                ).tolist()
+            )
+
+    support_times = np.asarray(support_times, dtype=np.float64)
+    support_start = np.floor(np.min(support_times) * sampling_frequency) / sampling_frequency
+    support_end = np.ceil(np.max(support_times) * sampling_frequency) / sampling_frequency
+    start_time = support_start - FIELDII_LEADING_PAD_SAMPLES / sampling_frequency
+    end_time = support_end + FIELDII_TRAILING_PAD_SAMPLES / sampling_frequency
+    sample_count = int(round((end_time - start_time) * sampling_frequency)) + 1
+    return float(start_time), sample_count
