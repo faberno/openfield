@@ -1,5 +1,13 @@
 [
   {
+    "name": "single_rectangle_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "Finite rectangle spatial impulse response is still being matched to Field II."
+  },
+  {
     "name": "piston_spatial_impulse",
     "kind": "time_response",
     "rtol": 1e-5,
@@ -24,19 +32,93 @@
     "reason": "Emitted pressure uses the current approximate spatial impulse response."
   },
   {
+    "name": "linear_array_focus_timeline_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "Focus timeline validation is blocked by standalone calc_h value parity."
+  },
+  {
+    "name": "linear_array_delay_timeline_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "Delay timeline validation is blocked by standalone calc_h value parity."
+  },
+  {
+    "name": "linear_array_apodization_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "Apodization validation is blocked by standalone calc_h value parity."
+  },
+  {
+    "name": "linear_array_soft_baffle_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "Soft-baffle obliquity model still needs Field II parity work."
+  },
+  {
+    "name": "linear_array_subelement_apodization_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "Per-subelement apodization validation is blocked by standalone calc_h value parity."
+  },
+  {
+    "name": "linear_array_subelement_delay_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "Per-subelement delay validation is blocked by standalone calc_h value parity."
+  },
+  {
+    "name": "linear_array_pulse_echo",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10
+  },
+  {
+    "name": "linear_array_scatterer_response",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10
+  },
+  {
+    "name": "linear_array_receive_channels",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10
+  },
+  {
+    "name": "linear_array_full_matrix_capture",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10
+  },
+  {
     "name": "linear_array_geometry",
     "kind": "geometry",
     "rtol": 1e-9,
-    "atol": 1e-12,
-    "expected_failure": true,
-    "reason": "Field II xdc_get rectangle export format still needs exact parser validation."
+    "atol": 1e-12
   },
   {
     "name": "two_dimensional_array_geometry",
     "kind": "geometry",
     "rtol": 1e-9,
-    "atol": 1e-12,
-    "expected_failure": true,
-    "reason": "Field II xdc_get rectangle export format still needs exact parser validation."
+    "atol": 1e-12
+  },
+  {
+    "name": "rectangle_aperture_geometry",
+    "kind": "geometry",
+    "rtol": 1e-9,
+    "atol": 1e-12
   }
 ]

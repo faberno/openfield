@@ -6,7 +6,9 @@ if ~exist(output_dir, 'dir')
 end
 
 rect = xdc_get(aperture, 'rect');
-if size(rect, 1) <= 26 && size(rect, 2) > size(rect, 1)
+if size(rect, 2) < 26 && size(rect, 1) >= 26
+    rect = rect';
+elseif size(rect, 1) <= 26 && size(rect, 2) > size(rect, 1)
     rect = rect';
 end
 physical_indices = rect(:, 1);
@@ -14,8 +16,8 @@ if min(physical_indices) >= 1
     physical_indices = physical_indices - 1;
 end
 subelement_indices = (0:size(rect, 1)-1)';
-subelement_centers = rect(:, 17:19);
-areas = rect(:, 15) .* rect(:, 16);
+subelement_centers = rect(:, 8:10);
+areas = rect(:, 3) .* rect(:, 4);
 normals = rect_normals(rect);
 centers = physical_centers(subelement_centers, areas, physical_indices);
 
@@ -37,10 +39,9 @@ write_json(fullfile(output_dir, 'metadata.json'), metadata);
 end
 
 function normals = rect_normals(rect)
-v1 = rect(:, 2:4);
-v2 = rect(:, 5:7);
-v3 = rect(:, 8:10);
-raw = cross(v2 - v1, v3 - v1, 2);
+tan_xz = rect(:, 6);
+tan_yz = rect(:, 7);
+raw = [tan_yz, tan_xz, ones(size(rect, 1), 1)];
 norms = sqrt(sum(raw.^2, 2));
 normals = raw ./ norms;
 end

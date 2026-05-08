@@ -114,6 +114,46 @@ class RectangleAperture(Aperture):
             metadata={"vertices": vertices.copy(), "physical_indices": physical_indices.copy()},
         )
 
+    @classmethod
+    def from_fieldii_rectangles(cls, rect, *, focus=None) -> "RectangleAperture":
+        """Build from Field II's ``xdc_rectangles`` matrix layout."""
+
+        rect = np.asarray(rect, dtype=np.float64)
+        if rect.ndim != 2 or rect.shape[1] != 19:
+            raise ValueError("rect must have shape (n_rectangles, 19)")
+        physical_indices = _normalize_index_column(rect[:, 0])
+        vertices = rect[:, 1:13].reshape((-1, 4, 3))
+        aperture = cls(vertices=vertices, physical_indices=physical_indices)
+        metadata = dict(aperture.metadata)
+        metadata["fieldii_rectangles"] = rect.copy()
+        aperture = aperture._replace(metadata=metadata)
+        if focus is not None:
+            aperture = aperture.focused_at(focus)
+        return aperture
+
+    def to_fieldii_rectangles(self) -> np.ndarray:
+        """Export a Field II-compatible ``xdc_rectangles`` matrix."""
+
+        rows = []
+        apodization = _apodization_values(self)
+        for element in self.elements:
+            if element.vertices is None or element.vertices.shape != (4, 3):
+                raise ValueError("all subelements must be quadrilaterals")
+            vertices = np.asarray(element.vertices, dtype=np.float64)
+            width = float(np.linalg.norm(vertices[1] - vertices[0]))
+            height = float(np.linalg.norm(vertices[3] - vertices[0]))
+            rows.append(
+                [
+                    element.physical_index + 1,
+                    *vertices.reshape(-1).tolist(),
+                    float(apodization[element.physical_index]),
+                    width,
+                    height,
+                    *element.center.tolist(),
+                ]
+            )
+        return np.asarray(rows, dtype=np.float64)
+
 
 class TriangleAperture(Aperture):
     """Aperture defined directly by triangular surface patches."""
@@ -144,6 +184,40 @@ class TriangleAperture(Aperture):
             name="triangle_aperture",
             metadata={"vertices": vertices.copy(), "physical_indices": physical_indices.copy()},
         )
+
+    @classmethod
+    def from_fieldii_triangles(cls, data, *, focus=None) -> "TriangleAperture":
+        """Build from Field II's ``xdc_triangles`` matrix layout."""
+
+        data = np.asarray(data, dtype=np.float64)
+        if data.ndim != 2 or data.shape[1] != 11:
+            raise ValueError("data must have shape (n_triangles, 11)")
+        physical_indices = _normalize_index_column(data[:, 0])
+        vertices = data[:, 1:10].reshape((-1, 3, 3))
+        aperture = cls(vertices=vertices, physical_indices=physical_indices)
+        metadata = dict(aperture.metadata)
+        metadata["fieldii_triangles"] = data.copy()
+        aperture = aperture._replace(metadata=metadata)
+        if focus is not None:
+            aperture = aperture.focused_at(focus)
+        return aperture
+
+    def to_fieldii_triangles(self) -> np.ndarray:
+        """Export a Field II-compatible ``xdc_triangles`` matrix."""
+
+        rows = []
+        apodization = _apodization_values(self)
+        for element in self.elements:
+            if element.vertices is None or element.vertices.shape != (3, 3):
+                raise ValueError("all subelements must be triangles")
+            rows.append(
+                [
+                    element.physical_index + 1,
+                    *np.asarray(element.vertices, dtype=np.float64).reshape(-1).tolist(),
+                    float(apodization[element.physical_index]),
+                ]
+            )
+        return np.asarray(rows, dtype=np.float64)
 
 
 class LineBoundedAperture(Aperture):
@@ -203,6 +277,29 @@ class LineBoundedAperture(Aperture):
             metadata={"lines": line_data.copy(), "centers": centers_array, "bounding_extent": extent},
         )
 
+    @classmethod
+    def from_fieldii_lines(
+        cls,
+        lines,
+        *,
+        centers=None,
+        focus=None,
+        bounding_extent: float | None = None,
+    ) -> "LineBoundedAperture":
+        """Build from Field II's ``xdc_lines`` matrix layout."""
+
+        aperture = cls(lines=lines, centers=centers, bounding_extent=bounding_extent)
+        if focus is not None:
+            aperture = aperture.focused_at(focus)
+        return aperture
+
+    def to_fieldii_lines(self) -> np.ndarray:
+        """Export a Field II-compatible ``xdc_lines`` matrix."""
+
+        lines = np.asarray(self.metadata["lines"], dtype=np.float64).copy()
+        lines[:, 0:2] += 1
+        return lines
+
 
 def _physical_indices(physical_indices: Sequence[int] | None, count: int) -> np.ndarray:
     if physical_indices is None:
@@ -224,6 +321,15 @@ def _normalize_index_column(values: np.ndarray) -> np.ndarray:
         values = values - 1
     if np.any(values < 0):
         raise ValueError("line indices must be non-negative")
+    return values
+
+
+def _apodization_values(aperture: Aperture) -> np.ndarray:
+    if aperture.apodization is None:
+        return np.ones(aperture.physical_element_count, dtype=np.float64)
+    values = np.asarray(aperture.apodization.at_time(0.0), dtype=np.float64)
+    if values.shape != (aperture.physical_element_count,):
+        raise ValueError("apodization length must match physical element count")
     return values
 
 

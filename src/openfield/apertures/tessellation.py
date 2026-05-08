@@ -52,10 +52,10 @@ def rectangular_grid(
     elements: list[SubElement] = []
 
     index = start_subelement_index
-    for ix in range(sub_x):
-        local_x = -width / 2 + (ix + 0.5) * dx
-        for iy in range(sub_y):
-            local_y = -height / 2 + (iy + 0.5) * dy
+    for iy in range(sub_y):
+        local_y = -height / 2 + (iy + 0.5) * dy
+        for ix in range(sub_x):
+            local_x = -width / 2 + (ix + 0.5) * dx
             element_center = center + local_x * tangent_x + local_y * tangent_y
             vertices = np.array(
                 [
@@ -109,10 +109,10 @@ def mapped_rectangular_grid(
     elements: list[SubElement] = []
     index = start_subelement_index
 
-    for ix in range(sub_x):
-        local_x = -width / 2 + (ix + 0.5) * dx
-        for iy in range(sub_y):
-            local_y = -height / 2 + (iy + 0.5) * dy
+    for iy in range(sub_y):
+        local_y = -height / 2 + (iy + 0.5) * dy
+        for ix in range(sub_x):
+            local_x = -width / 2 + (ix + 0.5) * dx
             center = np.asarray(surface(local_x, local_y), dtype=np.float64)
             vertices = np.asarray(
                 [

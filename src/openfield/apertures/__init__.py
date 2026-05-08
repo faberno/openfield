@@ -10,12 +10,14 @@ from .arrays import (
     TwoDimensionalArray,
 )
 from .base import Aperture
+from .controls import Baffle, SubElementApodization, SubElementDelays
 from .elements import SubElement
 from .primitives import ConcavePiston, LineBoundedAperture, Piston, RectangleAperture, TriangleAperture
 
 __all__ = [
     "Array2D",
     "Aperture",
+    "Baffle",
     "ConcavePiston",
     "ConvexArray",
     "ConvexFocusedArray",
@@ -28,6 +30,8 @@ __all__ = [
     "Piston",
     "RectangleAperture",
     "SubElement",
+    "SubElementApodization",
+    "SubElementDelays",
     "TriangleAperture",
     "TwoDimensionalArray",
 ]

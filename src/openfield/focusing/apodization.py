@@ -47,3 +47,13 @@ class Apodization:
         index = int(np.searchsorted(self.times, time, side="right") - 1)
         index = max(index, 0)
         return self.values[index]
+
+    def select_physical_elements(self, indices) -> "Apodization":
+        """Return an apodization timeline restricted to selected elements."""
+
+        indices = np.asarray(indices, dtype=np.int64)
+        if indices.ndim != 1:
+            raise ValueError("indices must be one-dimensional")
+        if np.any(indices < 0) or np.any(indices >= self.values.shape[1]):
+            raise ValueError("indices are outside the apodization element range")
+        return Apodization(values=self.values[:, indices], times=self.times)

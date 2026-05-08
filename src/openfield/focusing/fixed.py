@@ -30,7 +30,8 @@ class FixedFocus:
         object.__setattr__(self, "point", point)
         object.__setattr__(self, "origin", origin)
 
-    def delays(self, aperture, sound_speed: float) -> np.ndarray:
+    def delays(self, aperture, sound_speed: float, time: float = 0.0) -> np.ndarray:
+        del time
         if sound_speed <= 0:
             raise ValueError("sound_speed must be positive")
         reference_distance = float(np.linalg.norm(self.origin - self.point))

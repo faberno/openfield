@@ -322,8 +322,8 @@ class TwoDimensionalArray(Aperture):
         subelement_index = 0
         physical_index = 0
 
-        for ix, x in enumerate(x_positions):
-            for iy, y in enumerate(y_positions):
+        for iy, y in enumerate(y_positions):
+            for ix, x in enumerate(x_positions):
                 if not enabled[ix, iy]:
                     continue
                 tessellated = rectangular_grid(

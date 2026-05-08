@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from openfield import Medium, Simulation
-from openfield.apertures import Piston
+from openfield.apertures import LinearArray, Piston
 from openfield.waveforms import Waveform
 
 
@@ -53,3 +53,25 @@ def test_emitted_pressure_samples_waveform_objects_at_simulation_frequency():
 
     assert pressure.samples.shape[1] == 1
     assert np.any(pressure.samples > 0.0)
+
+
+def test_emitted_pressure_supports_per_element_waveforms():
+    sim = Simulation(sampling_frequency=100.0, medium=Medium(sound_speed=10.0))
+    aperture = (
+        LinearArray(elements=2, width=0.1, height=0.1, kerf=0.0, subdivisions=(1, 1))
+        .with_element_waveforms(
+            [
+                Waveform([1.0], sampling_frequency=100.0),
+                Waveform([0.0], sampling_frequency=100.0),
+            ]
+        )
+        .with_impulse_response(Waveform([1.0], sampling_frequency=100.0))
+    )
+
+    response = sim.emitted_pressure(aperture, [[0.0, 0.0, 1.0]])
+    first_only = sim.emitted_pressure(
+        aperture.select_physical_elements([0]).with_element_waveforms([Waveform([1.0], 100.0)]),
+        [[0.0, 0.0, 1.0]],
+    )
+
+    assert np.allclose(response.samples, first_only.samples)

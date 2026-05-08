@@ -32,3 +32,42 @@ class Simulation:
         from .physics.pressure import emitted_pressure
 
         return emitted_pressure(self, transmit=transmit, points=points)
+
+    def pulse_echo_response(self, transmit, receive, points):
+        from .physics.scattering import pulse_echo_response
+
+        return pulse_echo_response(self, transmit=transmit, receive=receive, points=points)
+
+    def scatterer_response(self, transmit, receive, points, amplitudes):
+        from .physics.scattering import scatterer_response
+
+        return scatterer_response(
+            self,
+            transmit=transmit,
+            receive=receive,
+            points=points,
+            amplitudes=amplitudes,
+        )
+
+    def receive_channel_responses(self, transmit, receive, points, amplitudes):
+        from .physics.scattering import receive_channel_responses
+
+        return receive_channel_responses(
+            self,
+            transmit=transmit,
+            receive=receive,
+            points=points,
+            amplitudes=amplitudes,
+        )
+
+    def full_matrix_capture(self, transmit, receive, points, amplitudes, *, decimation_factor: int = 1):
+        from .physics.scattering import full_matrix_capture
+
+        return full_matrix_capture(
+            self,
+            transmit=transmit,
+            receive=receive,
+            points=points,
+            amplitudes=amplitudes,
+            decimation_factor=decimation_factor,
+        )
