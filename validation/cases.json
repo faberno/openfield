@@ -1,0 +1,42 @@
+[
+  {
+    "name": "piston_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "CPU reference spatial impulse response is not Field II equivalent yet."
+  },
+  {
+    "name": "linear_array_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "CPU reference focusing and spatial impulse response need Field II validation."
+  },
+  {
+    "name": "linear_array_emitted_pressure",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-12,
+    "expected_failure": true,
+    "reason": "Emitted pressure uses the current approximate spatial impulse response."
+  },
+  {
+    "name": "linear_array_geometry",
+    "kind": "geometry",
+    "rtol": 1e-9,
+    "atol": 1e-12,
+    "expected_failure": true,
+    "reason": "Field II xdc_get rectangle export format still needs exact parser validation."
+  },
+  {
+    "name": "two_dimensional_array_geometry",
+    "kind": "geometry",
+    "rtol": 1e-9,
+    "atol": 1e-12,
+    "expected_failure": true,
+    "reason": "Field II xdc_get rectangle export format still needs exact parser validation."
+  }
+]

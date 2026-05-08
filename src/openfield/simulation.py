@@ -27,3 +27,8 @@ class Simulation:
         from .physics.spatial_impulse import spatial_impulse_response
 
         return spatial_impulse_response(self, aperture=aperture, points=points)
+
+    def emitted_pressure(self, transmit, points):
+        from .physics.pressure import emitted_pressure
+
+        return emitted_pressure(self, transmit=transmit, points=points)
