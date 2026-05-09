@@ -24,17 +24,21 @@ def test_piston_tessellation_stays_inside_radius():
     assert np.all(aperture.areas > 0.0)
 
 
-def test_concave_piston_normals_point_to_focus():
+def test_concave_piston_uses_fieldii_slope_normals():
     focal_radius = 2.0
     aperture = ConcavePiston(radius=0.8, focal_radius=focal_radius, element_size=0.1)
 
-    focus = np.array([0.0, 0.0, focal_radius])
-    expected_normals = focus - aperture.centers
-    expected_normals = expected_normals / np.linalg.norm(expected_normals, axis=1)[:, None]
+    first = aperture.elements[0]
+    edge_x = first.vertices[1] - first.vertices[0]
+    edge_y = first.vertices[3] - first.vertices[0]
+    slope_xz = edge_x[2] / edge_x[0]
+    slope_yz = edge_y[2] / edge_y[1]
+    expected_first_normal = np.array([-slope_xz, slope_yz, 1.0])
+    expected_first_normal /= np.linalg.norm(expected_first_normal)
 
     assert aperture.physical_element_count == 1
     assert np.all(aperture.centers[:, 2] >= 0.0)
-    assert np.allclose(aperture.normals, expected_normals)
+    assert np.allclose(first.normal, expected_first_normal)
     assert np.all(aperture.areas > 0.0)
 
 
@@ -89,6 +93,40 @@ def test_rectangle_aperture_fieldii_roundtrip():
 
     assert aperture.physical_indices.tolist() == [0]
     assert np.allclose(exported, rect)
+
+
+def test_rectangle_aperture_uses_fieldii_supplied_centers_and_area():
+    rect = np.array(
+        [
+            [
+                1,
+                -0.5,
+                -0.25,
+                0.0,
+                0.5,
+                -0.25,
+                0.1,
+                0.5,
+                0.25,
+                0.1,
+                -0.5,
+                0.25,
+                0.0,
+                1.0,
+                1.0,
+                0.6,
+                0.1,
+                0.2,
+                0.3,
+            ]
+        ],
+        dtype=np.float64,
+    )
+
+    aperture = RectangleAperture.from_fieldii_rectangles(rect)
+
+    assert np.allclose(aperture.centers, [[0.1, 0.2, 0.3]])
+    assert np.allclose(aperture.areas, [0.6])
 
 
 def test_triangle_aperture_fieldii_roundtrip():

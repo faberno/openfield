@@ -1,50 +1,73 @@
 # Validation Debt
 
-This file tracks Field II parity gaps that are known, intentional, and still
-blocking strict validation.
+This file tracks Field II parity gaps that are known, intentional, or still
+missing dedicated validation coverage.
 
 ## Spatial Impulse Response (`calc_h`)
 
-Status: unresolved.
+Status: strict Field II validation passes for flat rectangular apertures,
+including linear, multirow, sparse 2D, and imported rectangle apertures.
+Curved and non-rectangular primitive kernels still have known gaps.
 
 Validated so far:
 
 - Field II-compatible output time windows are implemented for rectangular
-  subelements.
-- Linear-array and sparse-2D-array geometry export now passes strict comparison
-  against `xdc_get(..., 'rect')`.
-- A single rectangular subelement is close in scale and timing, but not yet
-  within strict value tolerances.
+  subelements, focus timelines, explicit delay timelines, and subelement delays.
+- The rectangle kernel uses Field II's far-field projected-rectangle rule with
+  sample-centered bin integration.
+- Triangle and line-bounded primitives use an event-split flat-polygon
+  integration path. This keeps triangle and line descriptions of the same flat
+  polygon numerically consistent, but it intentionally does not emulate Field
+  II's default `fast_integration=1` approximation yet.
+- Rigid and soft baffle `calc_h` cases pass strict comparison.
 
-Current gap:
+Strict validation now passes for:
 
-- Multi-subelement pressure fields have matching broad support but different
-  sample-wise distribution from Field II.
-- The current CPU path uses a far-field center approximation with support
-  spreading. Field II appears to use a related rectangle approximation, but the
-  exact per-sample deposition rule has not been matched.
-
-Affected validation cases:
-
-- `single_rectangle_spatial_impulse`
-- `piston_spatial_impulse`
-- `linear_array_spatial_impulse`
-- `linear_array_emitted_pressure`
+- `focused_linear_array_geometry`
+- `focused_linear_array_spatial_impulse`
+- `focused_multirow_array_geometry`
+- `focused_multirow_array_spatial_impulse`
+- `convex_array_geometry`
+- `convex_array_spatial_impulse`
+- `convex_focused_array_geometry`
+- `convex_focused_multirow_array_geometry`
+- `concave_piston_geometry`
 - `linear_array_focus_timeline_spatial_impulse`
 - `linear_array_delay_timeline_spatial_impulse`
 - `linear_array_apodization_spatial_impulse`
+- `linear_array_soft_baffle_spatial_impulse`
 - `linear_array_subelement_apodization_spatial_impulse`
 - `linear_array_subelement_delay_spatial_impulse`
-- Any pulse-echo or scatterer case that depends on spatial impulse responses.
+- `linear_array_spatial_impulse`
+- `linear_multirow_array_spatial_impulse`
+- `piston_spatial_impulse`
+- `rectangle_aperture_spatial_impulse`
+- `single_rectangle_spatial_impulse`
+- `two_dimensional_array_spatial_impulse`
 
-Revisit before removing expected failures from:
+Broader aperture-family validation cases now exist, but are expected failures:
 
-- `calc_h`
-- `calc_hp`
-- `calc_hhp`
-- `calc_scat`
-- `calc_scat_multi`
-- `calc_scat_all`
+- `convex_focused_array_spatial_impulse`: combined convex/elevation-focused
+  geometry and focus-delay parity passes; the remaining difference is the
+  undocumented curved-rectangle edge-sample kernel used by `calc_h`.
+- `convex_focused_multirow_array_spatial_impulse`: combined convex/elevation
+  multirow geometry and focus-delay parity passes; the remaining difference is
+  the undocumented curved-rectangle edge-sample kernel used by `calc_h`.
+- `concave_piston_spatial_impulse`: curved-surface geometry/kernel parity is
+  close but not strict.
+- `triangle_aperture_spatial_impulse`: the openfield path uses an
+  area-conserving, event-split flat-polygon kernel; Field II's default fast
+  triangle integration intentionally trades shape accuracy for speed at low
+  sampling rates.
+- `line_bounded_aperture_spatial_impulse`: the openfield path uses an
+  area-conserving, event-split flat-polygon kernel; Field II's default fast line
+  integration intentionally trades shape accuracy for speed at low sampling
+  rates.
+
+Additional diagnostics live in `validation/diagnostics/` and write Field II
+kernel-mode outputs under `validation/results/kernel_modes/`. They currently
+capture `fast_integration=0/1`, `accurate_time_calc=0/1`, and selected isolated
+curved subelements for fitting the remaining rectangle-kernel gap.
 
 ## Pulse-Echo And Scatterer Responses
 
@@ -59,44 +82,14 @@ Initial validation goal:
 
 Remaining risk:
 
-- Broader pulse-echo/scatterer coverage can still move if the lower-level
-  `calc_h` rectangle deposition rule changes.
-
-## Explicit Delay Timelines
-
-Status: unresolved.
-
-Current gap:
-
-- The validation case for user-supplied physical-element delays currently has a
-  two-sample shape mismatch against Field II.
-- This may be a delay sign/reference convention issue or another edge of the
-  Field II time-window rule.
-
-Affected validation case:
-
-- `linear_array_delay_timeline_spatial_impulse`
-- `linear_array_subelement_delay_spatial_impulse`
-
-## Soft Baffle
-
-Status: unresolved.
-
-Current gap:
-
-- `openfield` has a cosine-obliquity soft-baffle approximation, but it has not
-  been matched to Field II's exact soft-baffle rule.
-
-Affected validation case:
-
-- `linear_array_soft_baffle_spatial_impulse`
+- Broader pulse-echo/scatterer coverage is still needed for more aperture
+  families and nontrivial channel configurations.
 
 ## Per-Element Waveforms
 
-Status: missing Field II oracle.
+Status: strict small-case Field II validation passes.
 
-Current gap:
+Remaining risk:
 
-- Python unit tests cover per-physical-element transmit waveforms in the
-  emitted-pressure path.
-- A dedicated Field II `ele_waveform` validation case has not been added yet.
+- Broader coverage is still needed for sparse element selections and
+  combinations with nontrivial impulse responses.

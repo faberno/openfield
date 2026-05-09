@@ -41,36 +41,49 @@ class ConcavePiston(Aperture):
         if element_size <= 0:
             raise ValueError("element_size must be positive")
 
-        planar = circular_planar_grid(radius=radius, element_size=element_size)
-        focus = np.array([0.0, 0.0, focal_radius], dtype=np.float64)
         elements: list[SubElement] = []
+        steps = int(np.ceil(2 * radius / element_size))
+        first = -steps * element_size / 2 + element_size / 2
 
-        for index, element in enumerate(planar):
-            x, y, _ = element.center
-            radial_sq = x * x + y * y
-            z = focal_radius - np.sqrt(focal_radius * focal_radius - radial_sq)
-            center = np.array([x, y, z], dtype=np.float64)
-            normal = focus - center
-            normal /= np.linalg.norm(normal)
-            projected_area_factor = max(float(normal[2]), np.finfo(float).eps)
-            vertices = []
-            for vertex in element.vertices:
-                vx, vy, _ = vertex
-                vertex_radial_sq = vx * vx + vy * vy
-                if vertex_radial_sq >= focal_radius * focal_radius:
+        index = 0
+        for iy in range(steps):
+            y = first + iy * element_size
+            for ix in range(steps):
+                x = first + ix * element_size
+                if x * x + y * y > radius * radius:
                     continue
-                vz = focal_radius - np.sqrt(focal_radius * focal_radius - vertex_radial_sq)
-                vertices.append([vx, vy, vz])
-            elements.append(
-                SubElement(
-                    center=center,
-                    normal=normal,
-                    area=element.area / projected_area_factor,
-                    physical_index=0,
-                    subelement_index=index,
-                    vertices=np.asarray(vertices, dtype=np.float64) if len(vertices) >= 3 else None,
+                center = _concave_surface_point(x, y, focal_radius)
+                x0 = x - element_size / 2.0
+                x1 = x + element_size / 2.0
+                y0 = y - element_size / 2.0
+                y1 = y + element_size / 2.0
+                vertices = np.array(
+                    [
+                        _concave_surface_point(x0, y0, focal_radius),
+                        _concave_surface_point(x1, y0, focal_radius),
+                        _concave_surface_point(x1, y1, focal_radius),
+                        _concave_surface_point(x0, y1, focal_radius),
+                    ],
+                    dtype=np.float64,
                 )
-            )
+                slope_xz = (vertices[1, 2] - vertices[0, 2]) / (vertices[1, 0] - vertices[0, 0])
+                slope_yz = (vertices[3, 2] - vertices[0, 2]) / (vertices[3, 1] - vertices[0, 1])
+                normal = np.array([-slope_xz, slope_yz, 1.0], dtype=np.float64)
+                normal /= np.linalg.norm(normal)
+                area = float(np.linalg.norm(vertices[1] - vertices[0])) * float(
+                    np.linalg.norm(vertices[3] - vertices[0])
+                )
+                elements.append(
+                    SubElement(
+                        center=center,
+                        normal=normal,
+                        area=area,
+                        physical_index=0,
+                        subelement_index=index,
+                        vertices=vertices,
+                    )
+                )
+                index += 1
 
         super().__init__(
             elements=tuple(elements),
@@ -80,8 +93,15 @@ class ConcavePiston(Aperture):
                 "radius": radius,
                 "focal_radius": focal_radius,
                 "element_size": element_size,
+                "fieldii_leading_pad_samples": 0,
+                "fieldii_trailing_pad_samples": 4,
             },
         )
+
+
+def _concave_surface_point(x: float, y: float, focal_radius: float) -> np.ndarray:
+    z = focal_radius - np.sqrt(focal_radius * focal_radius - x * x - y * y)
+    return np.array([x, y, z], dtype=np.float64)
 
 
 class RectangleAperture(Aperture):
@@ -124,9 +144,23 @@ class RectangleAperture(Aperture):
         physical_indices = _normalize_index_column(rect[:, 0])
         vertices = rect[:, 1:13].reshape((-1, 4, 3))
         aperture = cls(vertices=vertices, physical_indices=physical_indices)
+        elements = []
+        for index, rectangle in enumerate(vertices):
+            _, normal = quadrilateral_area_normal(rectangle)
+            elements.append(
+                SubElement(
+                    center=rect[index, 16:19],
+                    normal=normal,
+                    area=float(rect[index, 14] * rect[index, 15]),
+                    physical_index=int(physical_indices[index]),
+                    subelement_index=index,
+                    vertices=rectangle,
+                )
+            )
         metadata = dict(aperture.metadata)
         metadata["fieldii_rectangles"] = rect.copy()
-        aperture = aperture._replace(metadata=metadata)
+        metadata["fieldii_trailing_pad_samples"] = 4
+        aperture = aperture._replace(elements=tuple(elements), metadata=metadata)
         if focus is not None:
             aperture = aperture.focused_at(focus)
         return aperture
@@ -197,6 +231,7 @@ class TriangleAperture(Aperture):
         aperture = cls(vertices=vertices, physical_indices=physical_indices)
         metadata = dict(aperture.metadata)
         metadata["fieldii_triangles"] = data.copy()
+        metadata["fieldii_trailing_pad_samples"] = 2
         aperture = aperture._replace(metadata=metadata)
         if focus is not None:
             aperture = aperture.focused_at(focus)
@@ -289,6 +324,9 @@ class LineBoundedAperture(Aperture):
         """Build from Field II's ``xdc_lines`` matrix layout."""
 
         aperture = cls(lines=lines, centers=centers, bounding_extent=bounding_extent)
+        metadata = dict(aperture.metadata)
+        metadata["fieldii_trailing_pad_samples"] = 3
+        aperture = aperture._replace(metadata=metadata)
         if focus is not None:
             aperture = aperture.focused_at(focus)
         return aperture

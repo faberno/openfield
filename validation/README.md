@@ -63,12 +63,33 @@ List cases:
 python validation/run_openfield_cases.py --list
 ```
 
+Kernel-mode probes that are not part of the main pass/fail matrix live in
+`validation/diagnostics/`. They are useful for investigating Field II's
+`fast_integration` and `accurate_time_calc` switches:
+
+```powershell
+matlab -batch "addpath('validation/diagnostics'); run_kernel_mode_diagnostics(pwd)"
+uv run --no-project --with numpy python validation/diagnostics/analyze_kernel_modes.py
+```
+
 ## Current Cases
 
 - `piston_spatial_impulse`: Field II `calc_h` vs `Simulation.spatial_impulse_response`.
 - `single_rectangle_spatial_impulse`: isolated one-rectangle Field II `calc_h` vs `Simulation.spatial_impulse_response`.
 - `linear_array_spatial_impulse`: Field II `calc_h` on a focused linear array vs `Simulation.spatial_impulse_response`.
+- `focused_linear_array_spatial_impulse`: Field II `xdc_focused_array` vs `FocusedLinearArray`.
+- `linear_multirow_array_spatial_impulse`: Field II `xdc_linear_multirow` vs `LinearMultirowArray`.
+- `focused_multirow_array_spatial_impulse`: Field II `xdc_focused_multirow` vs `FocusedMultirowArray`.
+- `convex_array_spatial_impulse`: Field II `xdc_convex_array` vs `ConvexArray`.
+- `convex_focused_array_spatial_impulse`: Field II `xdc_convex_focused_array` vs `ConvexFocusedArray`.
+- `convex_focused_multirow_array_spatial_impulse`: Field II `xdc_convex_focused_multirow` vs `ConvexFocusedMultirowArray`.
+- `two_dimensional_array_spatial_impulse`: Field II `xdc_2d_array` vs `TwoDimensionalArray`.
+- `concave_piston_spatial_impulse`: Field II `xdc_concave` vs `ConcavePiston`.
+- `rectangle_aperture_spatial_impulse`: Field II `xdc_rectangles` vs `RectangleAperture`.
+- `triangle_aperture_spatial_impulse`: Field II `xdc_triangles` vs `TriangleAperture`.
+- `line_bounded_aperture_spatial_impulse`: Field II `xdc_lines` vs `LineBoundedAperture`.
 - `linear_array_emitted_pressure`: Field II `calc_hp` vs `Simulation.emitted_pressure`.
+- `linear_array_element_waveforms`: Field II `ele_waveform`/`calc_hp` vs per-element `Waveform`s.
 - `linear_array_focus_timeline_spatial_impulse`: Field II `xdc_focus` timeline vs `FocusTimeline`.
 - `linear_array_delay_timeline_spatial_impulse`: Field II `xdc_focus_times` vs `DelayTimeline`.
 - `linear_array_apodization_spatial_impulse`: Field II `xdc_apodization` vs `Apodization`.
@@ -80,10 +101,15 @@ python validation/run_openfield_cases.py --list
 - `linear_array_receive_channels`: Field II `calc_scat_multi` vs `Simulation.receive_channel_responses`.
 - `linear_array_full_matrix_capture`: Field II `calc_scat_all` vs `Simulation.full_matrix_capture`.
 - `linear_array_geometry`: Field II `xdc_get(..., 'rect')` derived geometry vs `LinearArray`.
+- `focused_linear_array_geometry`: Field II `xdc_get(..., 'rect')` derived geometry vs `FocusedLinearArray`.
+- `focused_multirow_array_geometry`: Field II `xdc_get(..., 'rect')` derived geometry vs `FocusedMultirowArray`.
+- `convex_array_geometry`: Field II `xdc_get(..., 'rect')` derived geometry vs `ConvexArray`.
+- `convex_focused_array_geometry`: Field II `xdc_get(..., 'rect')` derived geometry vs `ConvexFocusedArray`.
+- `convex_focused_multirow_array_geometry`: Field II `xdc_get(..., 'rect')` derived geometry vs `ConvexFocusedMultirowArray`.
+- `concave_piston_geometry`: Field II `xdc_get(..., 'rect')` derived geometry vs `ConcavePiston`.
 - `two_dimensional_array_geometry`: Field II `xdc_get(..., 'rect')` derived geometry vs `TwoDimensionalArray`.
 - `rectangle_aperture_geometry`: Field II `xdc_rectangles` geometry vs `RectangleAperture.from_fieldii_rectangles`.
 
-The physics comparisons are expected to become stricter over time. The current
-CPU reference implementation is deliberately simple, so validation may expose
-known differences from Field II before the numerical model is complete. Those
-known differences are tracked as expected failures in `validation/cases.json`.
+Some broader aperture-family cases are currently marked as expected failures in
+`validation/cases.json`. Coverage gaps and missing oracle cases are tracked in
+`docs/validation_debt.md`.

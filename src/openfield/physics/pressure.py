@@ -31,6 +31,8 @@ def emitted_pressure(simulation, *, transmit, points):
 
 def _element_waveform_pressure(simulation, *, transmit, points) -> TimeResponse:
     responses = []
+    window_start = None
+    window_end = None
     for physical_index in range(transmit.physical_element_count):
         waveform = transmit.element_waveforms.waveform_for(physical_index, default=transmit.excitation)
         if waveform is None:
@@ -43,10 +45,21 @@ def _element_waveform_pressure(simulation, *, transmit, points) -> TimeResponse:
             element_waveforms=None,
         )
         spatial_response = simulation.spatial_impulse_response(element_aperture, points)
+        response_end = (
+            spatial_response.start_time
+            + (spatial_response.sample_count - 1) / simulation.sampling_frequency
+        )
+        window_start = (
+            spatial_response.start_time
+            if window_start is None
+            else min(window_start, spatial_response.start_time)
+        )
+        window_end = response_end if window_end is None else max(window_end, response_end)
         responses.append(convolve_time_response(spatial_response, waveform))
     if not responses:
         raise ValueError("at least one element waveform or default excitation is required")
-    return _sum_time_responses(responses)
+    pressure = _sum_time_responses(responses)
+    return _crop_time_response(pressure, start_time=window_start, end_time=window_end)
 
 
 def _sum_time_responses(responses: list[TimeResponse]) -> TimeResponse:
@@ -65,6 +78,25 @@ def _sum_time_responses(responses: list[TimeResponse]) -> TimeResponse:
     for response in responses:
         offset = int(round((response.start_time - start_time) * sampling_frequency))
         samples[offset : offset + response.sample_count] += response.samples
+    return TimeResponse(
+        samples=samples,
+        sampling_frequency=sampling_frequency,
+        start_time=start_time,
+    )
+
+
+def _crop_time_response(response: TimeResponse, *, start_time: float, end_time: float) -> TimeResponse:
+    sampling_frequency = response.sampling_frequency
+    sample_count = int(round((end_time - start_time) * sampling_frequency)) + 1
+    samples = np.zeros((sample_count,) + response.samples.shape[1:], dtype=np.float64)
+    offset = int(round((response.start_time - start_time) * sampling_frequency))
+
+    source_start = max(0, -offset)
+    target_start = max(0, offset)
+    count = min(response.sample_count - source_start, sample_count - target_start)
+    if count > 0:
+        samples[target_start : target_start + count] = response.samples[source_start : source_start + count]
+
     return TimeResponse(
         samples=samples,
         sampling_frequency=sampling_frequency,

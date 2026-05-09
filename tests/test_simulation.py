@@ -1,7 +1,7 @@
 import numpy as np
 
 from openfield import Medium, Simulation
-from openfield.apertures import Piston
+from openfield.apertures import LineBoundedAperture, Piston, TriangleAperture
 
 
 def test_simulation_spatial_impulse_response_shape_and_time_axis():
@@ -20,3 +20,42 @@ def test_simulation_spatial_impulse_response_shape_and_time_axis():
     assert response.samples.shape[1] == 2
     assert response.sample_count == response.time.shape[0]
     assert np.any(response.samples > 0.0)
+
+
+def test_triangle_and_line_bounded_flat_polygon_responses_match():
+    sim = Simulation(sampling_frequency=100e6, medium=Medium(sound_speed=1540.0))
+    triangles = np.array(
+        [
+            [1, -0.5e-3, -0.25e-3, 0.0, 0.5e-3, -0.25e-3, 0.0, 0.5e-3, 0.25e-3, 0.0, 1.0],
+            [1, -0.5e-3, -0.25e-3, 0.0, 0.5e-3, 0.25e-3, 0.0, -0.5e-3, 0.25e-3, 0.0, 1.0],
+        ],
+        dtype=np.float64,
+    )
+    lines = np.array(
+        [
+            [1, 1, 0.0, 1, -0.5e-3, 0],
+            [1, 1, 0.0, 1, 0.5e-3, 1],
+            [1, 1, 0.0, 0, -0.25e-3, 1],
+            [1, 1, 0.0, 0, 0.25e-3, 0],
+        ],
+        dtype=np.float64,
+    )
+    points = [[0.0, 0.0, 30e-3], [2e-3, 0.0, 40e-3]]
+
+    triangle_response = sim.spatial_impulse_response(
+        TriangleAperture.from_fieldii_triangles(triangles),
+        points,
+    )
+    line_response = sim.spatial_impulse_response(
+        LineBoundedAperture.from_fieldii_lines(lines, bounding_extent=1e-3),
+        points,
+    )
+
+    shared_samples = min(triangle_response.sample_count, line_response.sample_count)
+    assert np.allclose(triangle_response.start_time, line_response.start_time)
+    assert np.allclose(
+        triangle_response.samples[:shared_samples],
+        line_response.samples[:shared_samples],
+    )
+    assert np.allclose(triangle_response.samples[shared_samples:], 0.0)
+    assert np.allclose(line_response.samples[shared_samples:], 0.0)

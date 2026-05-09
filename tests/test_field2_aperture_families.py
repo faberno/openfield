@@ -61,7 +61,8 @@ def test_focused_multirow_array_has_curved_rows():
     )
 
     assert aperture.physical_element_count == 6
-    assert np.max(aperture.centers[:, 2]) > 0.0
+    assert np.min(aperture.centers[:, 2]) < 0.0
+    assert np.max(aperture.centers[:, 2]) <= 0.0
     assert np.all(aperture.normals[:, 2] > 0.0)
 
 
@@ -80,6 +81,25 @@ def test_convex_array_fans_normals_in_azimuth():
     assert aperture.normals[0, 0] < 0.0
     assert aperture.normals[-1, 0] > 0.0
     assert np.all(aperture.normals[:, 2] > 0.0)
+
+
+def test_convex_array_uses_fieldii_curved_rectangle_convention():
+    aperture = ConvexArray(
+        elements=6,
+        width=0.3e-3,
+        height=5e-3,
+        kerf=0.03e-3,
+        convex_radius=25e-3,
+        subdivisions=(1, 3),
+    )
+
+    assert np.allclose(
+        aperture.centers[0],
+        [-0.00082486828000874696, -0.0016666666666666668, -1.361185924153227e-05],
+        rtol=1e-9,
+        atol=1e-12,
+    )
+    assert np.allclose(aperture.areas[0], 5.00009000567048e-07, rtol=1e-9, atol=1e-12)
 
 
 def test_convex_focused_array_combines_azimuth_and_elevation_curvature():

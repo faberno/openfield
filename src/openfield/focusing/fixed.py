@@ -35,7 +35,11 @@ class FixedFocus:
         if sound_speed <= 0:
             raise ValueError("sound_speed must be positive")
         reference_distance = float(np.linalg.norm(self.origin - self.point))
-        distances = np.linalg.norm(aperture.physical_centers - self.point, axis=1)
+        focus_centers = aperture.metadata.get("fieldii_focus_centers", aperture.physical_centers)
+        focus_centers = np.asarray(focus_centers, dtype=np.float64)
+        if focus_centers.shape != (aperture.physical_element_count, 3):
+            raise ValueError("focus center count must match physical element count")
+        distances = np.linalg.norm(focus_centers - self.point, axis=1)
         delays = (reference_distance - distances) / sound_speed
         if self.quantization:
             delays = np.round(delays / self.quantization) * self.quantization

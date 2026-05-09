@@ -174,6 +174,11 @@ class Aperture:
 
         metadata = dict(self.metadata)
         metadata["selected_physical_indices"] = indices.copy()
+        if "fieldii_focus_centers" in metadata:
+            metadata["fieldii_focus_centers"] = np.asarray(
+                metadata["fieldii_focus_centers"],
+                dtype=np.float64,
+            )[indices].copy()
         return self._replace(
             elements=elements,
             physical_element_count=int(indices.size),

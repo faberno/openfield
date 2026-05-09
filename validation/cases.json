@@ -3,81 +3,143 @@
     "name": "single_rectangle_spatial_impulse",
     "kind": "time_response",
     "rtol": 1e-5,
-    "atol": 1e-10,
-    "expected_failure": true,
-    "reason": "Finite rectangle spatial impulse response is still being matched to Field II."
+    "atol": 1e-10
   },
   {
     "name": "piston_spatial_impulse",
     "kind": "time_response",
     "rtol": 1e-5,
-    "atol": 1e-10,
-    "expected_failure": true,
-    "reason": "CPU reference spatial impulse response is not Field II equivalent yet."
+    "atol": 1e-10
   },
   {
     "name": "linear_array_spatial_impulse",
     "kind": "time_response",
     "rtol": 1e-5,
+    "atol": 1e-10
+  },
+  {
+    "name": "focused_linear_array_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10
+  },
+  {
+    "name": "linear_multirow_array_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10
+  },
+  {
+    "name": "focused_multirow_array_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10
+  },
+  {
+    "name": "convex_array_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10
+  },
+  {
+    "name": "convex_focused_array_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
     "atol": 1e-10,
     "expected_failure": true,
-    "reason": "CPU reference focusing and spatial impulse response need Field II validation."
+    "reason": "Convex-focused geometry and focus delays match Field II; calc_h still has edge-sample kernel/window differences."
+  },
+  {
+    "name": "convex_focused_multirow_array_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "Convex-focused multirow geometry and focus delays match Field II; calc_h still has edge-sample kernel/window differences."
+  },
+  {
+    "name": "two_dimensional_array_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10
+  },
+  {
+    "name": "concave_piston_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "Concave-piston geometry matches Field II; calc_h still has edge-sample kernel/window differences."
+  },
+  {
+    "name": "rectangle_aperture_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10
+  },
+  {
+    "name": "triangle_aperture_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "Triangle primitive calc_h uses an area-conserving event-split flat-polygon kernel; Field II's default fast triangle integration has low-sampling edge differences."
+  },
+  {
+    "name": "line_bounded_aperture_spatial_impulse",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-10,
+    "expected_failure": true,
+    "reason": "Line-bounded primitive calc_h uses an area-conserving event-split flat-polygon kernel; Field II's default fast line integration has low-sampling edge differences."
   },
   {
     "name": "linear_array_emitted_pressure",
     "kind": "time_response",
     "rtol": 1e-5,
-    "atol": 1e-12,
-    "expected_failure": true,
-    "reason": "Emitted pressure uses the current approximate spatial impulse response."
+    "atol": 1e-12
+  },
+  {
+    "name": "linear_array_element_waveforms",
+    "kind": "time_response",
+    "rtol": 1e-5,
+    "atol": 1e-12
   },
   {
     "name": "linear_array_focus_timeline_spatial_impulse",
     "kind": "time_response",
     "rtol": 1e-5,
-    "atol": 1e-10,
-    "expected_failure": true,
-    "reason": "Focus timeline validation is blocked by standalone calc_h value parity."
+    "atol": 1e-10
   },
   {
     "name": "linear_array_delay_timeline_spatial_impulse",
     "kind": "time_response",
     "rtol": 1e-5,
-    "atol": 1e-10,
-    "expected_failure": true,
-    "reason": "Delay timeline validation is blocked by standalone calc_h value parity."
+    "atol": 1e-10
   },
   {
     "name": "linear_array_apodization_spatial_impulse",
     "kind": "time_response",
     "rtol": 1e-5,
-    "atol": 1e-10,
-    "expected_failure": true,
-    "reason": "Apodization validation is blocked by standalone calc_h value parity."
+    "atol": 1e-10
   },
   {
     "name": "linear_array_soft_baffle_spatial_impulse",
     "kind": "time_response",
     "rtol": 1e-5,
-    "atol": 1e-10,
-    "expected_failure": true,
-    "reason": "Soft-baffle obliquity model still needs Field II parity work."
+    "atol": 1e-10
   },
   {
     "name": "linear_array_subelement_apodization_spatial_impulse",
     "kind": "time_response",
     "rtol": 1e-5,
-    "atol": 1e-10,
-    "expected_failure": true,
-    "reason": "Per-subelement apodization validation is blocked by standalone calc_h value parity."
+    "atol": 1e-10
   },
   {
     "name": "linear_array_subelement_delay_spatial_impulse",
     "kind": "time_response",
     "rtol": 1e-5,
-    "atol": 1e-10,
-    "expected_failure": true,
-    "reason": "Per-subelement delay validation is blocked by standalone calc_h value parity."
+    "atol": 1e-10
   },
   {
     "name": "linear_array_pulse_echo",
@@ -105,6 +167,42 @@
   },
   {
     "name": "linear_array_geometry",
+    "kind": "geometry",
+    "rtol": 1e-9,
+    "atol": 1e-12
+  },
+  {
+    "name": "focused_linear_array_geometry",
+    "kind": "geometry",
+    "rtol": 1e-9,
+    "atol": 1e-12
+  },
+  {
+    "name": "focused_multirow_array_geometry",
+    "kind": "geometry",
+    "rtol": 1e-9,
+    "atol": 1e-12
+  },
+  {
+    "name": "convex_array_geometry",
+    "kind": "geometry",
+    "rtol": 1e-9,
+    "atol": 1e-12
+  },
+  {
+    "name": "convex_focused_array_geometry",
+    "kind": "geometry",
+    "rtol": 1e-9,
+    "atol": 1e-12
+  },
+  {
+    "name": "convex_focused_multirow_array_geometry",
+    "kind": "geometry",
+    "rtol": 1e-9,
+    "atol": 1e-12
+  },
+  {
+    "name": "concave_piston_geometry",
     "kind": "geometry",
     "rtol": 1e-9,
     "atol": 1e-12

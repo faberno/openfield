@@ -41,7 +41,7 @@ end
 function normals = rect_normals(rect)
 tan_xz = rect(:, 6);
 tan_yz = rect(:, 7);
-raw = [tan_yz, tan_xz, ones(size(rect, 1), 1)];
+raw = [-tan_xz, tan_yz, ones(size(rect, 1), 1)];
 norms = sqrt(sum(raw.^2, 2));
 normals = raw ./ norms;
 end
