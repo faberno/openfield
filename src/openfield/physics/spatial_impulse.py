@@ -654,6 +654,38 @@ def _flat_polygon_event_times(
     return np.asarray(unique_times, dtype=np.float64)
 
 
+def _flat_polygon_propagation_event_times(*, point, element, sound_speed: float) -> np.ndarray:
+    vertices = np.asarray(element.vertices, dtype=np.float64)
+    normal = np.asarray(element.normal, dtype=np.float64)
+    normal_norm = float(np.linalg.norm(normal))
+    if normal_norm <= 1e-18:
+        return np.linalg.norm(point - vertices, axis=1) / sound_speed
+    normal = normal / normal_norm
+
+    tangent_x = vertices[1] - vertices[0]
+    tangent_x = tangent_x - np.dot(tangent_x, normal) * normal
+    tangent_x_norm = float(np.linalg.norm(tangent_x))
+    if tangent_x_norm <= 1e-18:
+        return np.linalg.norm(point - vertices, axis=1) / sound_speed
+    tangent_x = tangent_x / tangent_x_norm
+    tangent_y = np.cross(normal, tangent_x)
+
+    signed_distance = float(np.dot(point - vertices[0], normal))
+    projected_point = point - signed_distance * normal
+    distance_to_plane = abs(signed_distance)
+    vertices_2d = np.column_stack(
+        [
+            (vertices - projected_point) @ tangent_x,
+            (vertices - projected_point) @ tangent_y,
+        ]
+    )
+    critical_radii = _flat_polygon_critical_radii(vertices_2d)
+    return (
+        np.sqrt(distance_to_plane * distance_to_plane + critical_radii * critical_radii)
+        / sound_speed
+    )
+
+
 def _flat_polygon_response_at_tau(
     tau: float,
     *,
@@ -800,6 +832,18 @@ def _fieldii_like_time_axis(
                     + subelement_delays[element_index]
                 ).tolist()
             )
+            if aperture.name in {"triangle_aperture", "line_bounded_aperture"} and element.vertices is not None:
+                support_times.extend(
+                    (
+                        _flat_polygon_propagation_event_times(
+                            point=point,
+                            element=element,
+                            sound_speed=sound_speed,
+                        )
+                        + delays[element.physical_index]
+                        + subelement_delays[element_index]
+                    ).tolist()
+                )
 
     support_times = np.asarray(support_times, dtype=np.float64)
     support_start = np.floor(np.min(support_times) * sampling_frequency) / sampling_frequency

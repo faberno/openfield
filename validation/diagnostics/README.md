@@ -15,6 +15,25 @@ Then summarize from the repo root:
 uv run --no-project --with numpy python validation\diagnostics\analyze_kernel_modes.py
 ```
 
+To generate every isolated curved rectangle instead of the default three
+representative patches per aperture:
+
+```matlab
+run_kernel_mode_diagnostics('C:\Users\fabia\PycharmProjects\openfield', true)
+```
+
+Then compare the isolated patches against openfield:
+
+```powershell
+uv run --no-project --with numpy --with-editable . python validation\diagnostics\analyze_curved_rectangle_isolates.py
+```
+
+The isolate analyzer reports the worst patch residuals, local sample/point of
+the maximum error, integer sample-shift checks, geometry descriptors, and a
+small fitted half-width ratio tuple `(x_ratio, y_ratio, max_abs)` for each
+listed patch. Those fitted ratios are diagnostic only; they should not be used
+as a production correction unless they are consistent across aperture families.
+
 The outputs are written under `validation/results/kernel_modes/`.
 
 Current purpose:

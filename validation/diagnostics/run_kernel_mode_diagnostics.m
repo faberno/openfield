@@ -1,8 +1,11 @@
-function run_kernel_mode_diagnostics(repo_root)
+function run_kernel_mode_diagnostics(repo_root, isolate_all)
 %RUN_KERNEL_MODE_DIAGNOSTICS Generate Field II outputs for kernel switches.
 
 if nargin < 1
     repo_root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
+end
+if nargin < 2
+    isolate_all = false;
 end
 
 addpath(fullfile(repo_root, 'validation', 'matlab_helpers'));
@@ -19,7 +22,7 @@ focus = [0 0 40e-3];
 
 run_polygon_modes(repo_root, c, points, focus);
 run_accurate_time_modes(repo_root, c, points, focus);
-run_isolated_curved_rectangles(repo_root, c, points, focus);
+run_isolated_curved_rectangles(repo_root, c, points, focus, isolate_all);
 end
 
 
@@ -63,7 +66,7 @@ end
 end
 
 
-function run_isolated_curved_rectangles(repo_root, c, points, focus)
+function run_isolated_curved_rectangles(repo_root, c, points, focus, isolate_all)
 fs = 100e6;
 set_field('fs', fs);
 set_field('c', c);
@@ -75,7 +78,11 @@ for case_index = 1:3
     rect = fieldii_rectangles(aperture);
     xdc_free(aperture);
 
-    selected = unique(round([1 size(rect, 1) / 2 size(rect, 1)]));
+    if isolate_all
+        selected = 1:size(rect, 1);
+    else
+        selected = unique(round([1 size(rect, 1) / 2 size(rect, 1)]));
+    end
     for selected_index = 1:length(selected)
         rect_index = selected(selected_index);
         aperture = make_curved_aperture(case_name, focus);

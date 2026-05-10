@@ -59,3 +59,24 @@ def test_triangle_and_line_bounded_flat_polygon_responses_match():
     )
     assert np.allclose(triangle_response.samples[shared_samples:], 0.0)
     assert np.allclose(line_response.samples[shared_samples:], 0.0)
+
+
+def test_flat_polygon_time_axis_includes_projected_interior_support():
+    triangles = np.array(
+        [
+            [1, -0.5e-3, -0.25e-3, 0.0, 0.5e-3, -0.25e-3, 0.0, 0.5e-3, 0.25e-3, 0.0, 1.0],
+            [1, -0.5e-3, -0.25e-3, 0.0, 0.5e-3, 0.25e-3, 0.0, -0.5e-3, 0.25e-3, 0.0, 1.0],
+        ],
+        dtype=np.float64,
+    )
+    aperture = TriangleAperture.from_fieldii_triangles(triangles)
+    points = [[0.0, 0.0, 30e-3]]
+
+    low_fs = Simulation(sampling_frequency=100e6, medium=Medium(sound_speed=1540.0))
+    high_fs = Simulation(sampling_frequency=1e9, medium=Medium(sound_speed=1540.0))
+    low_response = low_fs.spatial_impulse_response(aperture, points)
+    high_response = high_fs.spatial_impulse_response(aperture, points)
+
+    low_area = np.sum(low_response.samples[:, 0]) / low_fs.sampling_frequency
+    high_area = np.sum(high_response.samples[:, 0]) / high_fs.sampling_frequency
+    assert np.isclose(high_area, low_area, rtol=5e-3)
