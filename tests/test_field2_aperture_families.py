@@ -31,6 +31,31 @@ def test_focused_linear_array_curves_in_elevation():
     assert np.all(aperture.normals[:, 2] > 0.0)
 
 
+def test_focused_linear_array_adaptive_tessellation_refines_elevation_curvature():
+    fieldii = FocusedLinearArray(
+        elements=3,
+        width=0.2,
+        height=0.8,
+        kerf=0.05,
+        elevation_focus=2.0,
+    )
+    adaptive = FocusedLinearArray(
+        elements=3,
+        width=0.2,
+        height=0.8,
+        kerf=0.05,
+        elevation_focus=2.0,
+        tessellation="adaptive",
+        max_sagitta=1e-3,
+    )
+
+    assert adaptive.metadata["tessellation"] == "adaptive"
+    assert "fieldii_focus_centers" not in adaptive.metadata
+    assert adaptive.physical_element_count == fieldii.physical_element_count
+    assert len(adaptive.elements) > len(fieldii.elements)
+    assert np.all(adaptive.normals[:, 2] > 0.0)
+
+
 def test_linear_multirow_array_indexes_all_rows():
     aperture = LinearMultirowArray(
         elements_x=2,
@@ -66,6 +91,24 @@ def test_focused_multirow_array_has_curved_rows():
     assert np.all(aperture.normals[:, 2] > 0.0)
 
 
+def test_focused_multirow_array_adaptive_tessellation_keeps_physical_indices():
+    aperture = FocusedMultirowArray(
+        elements_x=2,
+        width=0.2,
+        elements_y=3,
+        heights=[0.2, 0.3, 0.4],
+        kerf_x=0.05,
+        kerf_y=0.02,
+        elevation_focus=2.0,
+        tessellation="adaptive",
+        max_sagitta=1e-3,
+    )
+
+    assert aperture.metadata["tessellation"] == "adaptive"
+    assert np.array_equal(np.unique(aperture.physical_indices), np.arange(6))
+    assert np.all(aperture.areas > 0.0)
+
+
 def test_convex_array_fans_normals_in_azimuth():
     aperture = ConvexArray(
         elements=5,
@@ -81,6 +124,31 @@ def test_convex_array_fans_normals_in_azimuth():
     assert aperture.normals[0, 0] < 0.0
     assert aperture.normals[-1, 0] > 0.0
     assert np.all(aperture.normals[:, 2] > 0.0)
+
+
+def test_convex_array_adaptive_tessellation_refines_azimuth_curvature():
+    fieldii = ConvexArray(
+        elements=5,
+        width=0.2,
+        height=0.5,
+        kerf=0.02,
+        convex_radius=5.0,
+    )
+    adaptive = ConvexArray(
+        elements=5,
+        width=0.2,
+        height=0.5,
+        kerf=0.02,
+        convex_radius=5.0,
+        tessellation="adaptive",
+        max_sagitta=1e-4,
+    )
+
+    assert adaptive.metadata["tessellation"] == "adaptive"
+    assert adaptive.physical_element_count == fieldii.physical_element_count
+    assert len(adaptive.elements) > len(fieldii.elements)
+    assert adaptive.normals[0, 0] < 0.0
+    assert adaptive.normals[-1, 0] > 0.0
 
 
 def test_convex_array_uses_fieldii_curved_rectangle_convention():
@@ -119,6 +187,25 @@ def test_convex_focused_array_combines_azimuth_and_elevation_curvature():
     assert np.ptp(aperture.centers[:, 2]) > 0.0
 
 
+def test_convex_focused_array_adaptive_tessellation_combines_curvatures():
+    aperture = ConvexFocusedArray(
+        elements=3,
+        width=0.2,
+        height=0.8,
+        kerf=0.02,
+        convex_radius=5.0,
+        elevation_focus=2.0,
+        tessellation="adaptive",
+        max_sagitta=1e-3,
+    )
+
+    assert aperture.metadata["tessellation"] == "adaptive"
+    assert "fieldii_focus_centers" not in aperture.metadata
+    assert np.ptp(aperture.centers[:, 0]) > 0.0
+    assert np.ptp(aperture.centers[:, 2]) > 0.0
+    assert np.all(aperture.normals[:, 2] > 0.0)
+
+
 def test_convex_focused_multirow_array_indexes_all_rows():
     aperture = ConvexFocusedMultirowArray(
         elements_x=2,
@@ -135,6 +222,25 @@ def test_convex_focused_multirow_array_indexes_all_rows():
     assert aperture.physical_element_count == 4
     assert len(aperture.elements) == 2 * 2 * 2
     assert np.array_equal(np.unique(aperture.physical_indices), np.arange(4))
+
+
+def test_convex_focused_multirow_array_adaptive_tessellation_indexes_all_rows():
+    aperture = ConvexFocusedMultirowArray(
+        elements_x=2,
+        width=0.2,
+        elements_y=2,
+        heights=[0.3, 0.3],
+        kerf_x=0.02,
+        kerf_y=0.02,
+        convex_radius=5.0,
+        elevation_focus=2.0,
+        tessellation="adaptive",
+        max_sagitta=1e-3,
+    )
+
+    assert aperture.metadata["tessellation"] == "adaptive"
+    assert np.array_equal(np.unique(aperture.physical_indices), np.arange(4))
+    assert np.all(aperture.areas > 0.0)
 
 
 def test_two_dimensional_array_supports_sparse_enabled_mask():

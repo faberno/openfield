@@ -97,6 +97,15 @@ exact facet kernel intentionally differs from Field II's compatibility kernel.
 uv run --no-project --with-editable . python validation/concave_convergence.py
 ```
 
+By default this compares the Field II-style Cartesian concave mesh with the new
+boundary-fitted polar mesh and uses a fine polar OpenField solve as the
+reference. Use `--tessellations cartesian` or `--tessellations polar` to narrow
+the run.
+
+Other curved aperture families expose the same idea as opt-in geometry modes:
+`Piston.adaptive(...)`, `ConcavePiston.adaptive(...)`, and
+`tessellation="adaptive"` for focused/convex array constructors.
+
 Generated CSV and SVG files are written to
 `validation/results/convergence/concave_piston/`.
 

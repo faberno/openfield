@@ -1,7 +1,18 @@
 import numpy as np
 
 from openfield import Medium, Simulation
-from openfield.apertures import LineBoundedAperture, Piston, RectangleAperture, TriangleAperture
+from openfield.apertures import (
+    ConcavePiston,
+    ConvexArray,
+    ConvexFocusedArray,
+    ConvexFocusedMultirowArray,
+    FocusedLinearArray,
+    FocusedMultirowArray,
+    LineBoundedAperture,
+    Piston,
+    RectangleAperture,
+    TriangleAperture,
+)
 
 
 def test_simulation_spatial_impulse_response_shape_and_time_axis():
@@ -20,6 +31,67 @@ def test_simulation_spatial_impulse_response_shape_and_time_axis():
     assert response.samples.shape[1] == 2
     assert response.sample_count == response.time.shape[0]
     assert np.any(response.samples > 0.0)
+
+
+def test_adaptive_curved_apertures_produce_spatial_impulse_responses():
+    sim = Simulation(sampling_frequency=50e6, medium=Medium(sound_speed=1540.0))
+    apertures = [
+        Piston.adaptive(radius=1.0e-3, element_size=0.5e-3),
+        ConcavePiston.adaptive(radius=1.0e-3, focal_radius=20e-3, element_size=0.5e-3),
+        FocusedLinearArray(
+            elements=2,
+            width=0.3e-3,
+            height=2.0e-3,
+            kerf=0.03e-3,
+            elevation_focus=20e-3,
+            tessellation="adaptive",
+        ),
+        FocusedMultirowArray(
+            elements_x=2,
+            width=0.3e-3,
+            elements_y=2,
+            heights=[1.0e-3, 1.0e-3],
+            kerf_x=0.03e-3,
+            kerf_y=0.05e-3,
+            elevation_focus=20e-3,
+            tessellation="adaptive",
+        ),
+        ConvexArray(
+            elements=2,
+            width=0.3e-3,
+            height=2.0e-3,
+            kerf=0.03e-3,
+            convex_radius=25e-3,
+            tessellation="adaptive",
+        ),
+        ConvexFocusedArray(
+            elements=2,
+            width=0.3e-3,
+            height=2.0e-3,
+            kerf=0.03e-3,
+            convex_radius=25e-3,
+            elevation_focus=20e-3,
+            tessellation="adaptive",
+        ),
+        ConvexFocusedMultirowArray(
+            elements_x=2,
+            width=0.3e-3,
+            elements_y=2,
+            heights=[1.0e-3, 1.0e-3],
+            kerf_x=0.03e-3,
+            kerf_y=0.05e-3,
+            convex_radius=25e-3,
+            elevation_focus=20e-3,
+            tessellation="adaptive",
+        ),
+    ]
+
+    for aperture in apertures:
+        response = sim.spatial_impulse_response(aperture, [[0.0, 0.0, 30e-3]])
+
+        assert response.samples.shape[1] == 1
+        assert np.all(np.isfinite(response.samples))
+        assert np.any(response.samples[:, 0] != 0.0)
 
 
 def test_triangle_and_line_bounded_flat_polygon_responses_match():

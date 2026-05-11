@@ -13,6 +13,11 @@ as polygon facets; non-planar polygons are triangulated. This favors a simple,
 convergent model over reproducing Field II's legacy far-field rectangle
 approximation.
 
+Curved and circular apertures also provide opt-in adaptive tessellations. The
+legacy Field II-style layouts remain available for compatibility, while
+`tessellation="adaptive"` or the `.adaptive(...)` constructors use
+boundary-fitted or curvature-refined facets.
+
 Initial aperture geometry support includes:
 
 - flat, focused, multirow, convex, convex-focused, and sparse 2D arrays

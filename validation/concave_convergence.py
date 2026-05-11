@@ -41,6 +41,7 @@ EPS = 1e-30
 class ResponseRun:
     label: str
     source: str
+    tessellation: str | None
     element_size: float | None
     subelements: int | None
     facets: int | None
@@ -53,6 +54,7 @@ class ResponseRun:
 class Metrics:
     label: str
     source: str
+    tessellation: str | None
     element_size: float | None
     subelements: int | None
     facets: int | None
@@ -80,6 +82,19 @@ def main() -> None:
         default=0.125e-3,
         help="Fine OpenField element size used as the convergence reference, in meters.",
     )
+    parser.add_argument(
+        "--tessellations",
+        nargs="+",
+        choices=["cartesian", "polar", "adaptive"],
+        default=["cartesian", "polar"],
+        help="OpenField concave piston tessellations to compare.",
+    )
+    parser.add_argument(
+        "--reference-tessellation",
+        choices=["cartesian", "polar", "adaptive"],
+        default="polar",
+        help="OpenField tessellation used for the fine convergence reference.",
+    )
     parser.add_argument("--repeats", type=int, default=3, help="Timing repeats per OpenField element size.")
     parser.add_argument("--radius", type=float, default=5e-3, help="Concave piston radius, in meters.")
     parser.add_argument("--focal-radius", type=float, default=30e-3, help="Concave piston focal radius, in meters.")
@@ -93,6 +108,8 @@ def main() -> None:
         raise SystemExit("--repeats must be at least 1")
     if args.reference_element_size <= 0 or any(size <= 0 for size in args.element_sizes):
         raise SystemExit("element sizes must be positive")
+    tessellations = unique_tessellations(args.tessellations)
+    reference_tessellation = normalize_tessellation(args.reference_tessellation)
 
     simulation = Simulation(
         sampling_frequency=args.sampling_frequency,
@@ -108,24 +125,32 @@ def main() -> None:
         radius=args.radius,
         focal_radius=args.focal_radius,
         element_size=args.reference_element_size,
+        tessellation=reference_tessellation,
         repeats=args.repeats,
-        label=f"OpenField reference {format_mm(args.reference_element_size)}",
+        label=f"OpenField {reference_tessellation} reference {format_mm(args.reference_element_size)}",
     )
 
     runs: list[ResponseRun] = []
     sizes = sorted(set(float(size) for size in args.element_sizes), reverse=True)
-    for element_size in sizes:
-        runs.append(
-            run_openfield(
-                simulation,
-                radius=args.radius,
-                focal_radius=args.focal_radius,
-                element_size=element_size,
-                repeats=args.repeats,
-                label=f"OpenField {format_mm(element_size)}",
+    reference_included = False
+    for tessellation in tessellations:
+        for element_size in sizes:
+            if tessellation == reference_tessellation and element_size == args.reference_element_size:
+                runs.append(reference)
+                reference_included = True
+                continue
+            runs.append(
+                run_openfield(
+                    simulation,
+                    radius=args.radius,
+                    focal_radius=args.focal_radius,
+                    element_size=element_size,
+                    tessellation=tessellation,
+                    repeats=args.repeats,
+                    label=f"OpenField {tessellation} {format_mm(element_size)}",
+                )
             )
-        )
-    if args.reference_element_size not in sizes:
+    if not reference_included:
         runs.append(reference)
 
     if not args.skip_fieldii:
@@ -159,12 +184,18 @@ def run_openfield(
     radius: float,
     focal_radius: float,
     element_size: float,
+    tessellation: str,
     repeats: int,
     label: str,
 ) -> ResponseRun:
     timings = []
     response = None
-    aperture = ConcavePiston(radius=radius, focal_radius=focal_radius, element_size=element_size)
+    aperture = ConcavePiston(
+        radius=radius,
+        focal_radius=focal_radius,
+        element_size=element_size,
+        tessellation=tessellation,
+    )
     packed = _pack_aperture(aperture)
     for _ in range(repeats):
         start = time.perf_counter()
@@ -175,6 +206,7 @@ def run_openfield(
     return ResponseRun(
         label=label,
         source="openfield",
+        tessellation=tessellation,
         element_size=element_size,
         subelements=len(aperture.elements),
         facets=int(packed.facet_vertices.shape[0]),
@@ -196,6 +228,7 @@ def load_fieldii_run() -> ResponseRun | None:
     return ResponseRun(
         label="Field II xdc_concave 0.500 mm",
         source="fieldii",
+        tessellation=None,
         element_size=0.5e-3,
         subelements=metadata.get("subelement_count"),
         facets=metadata.get("subelement_count"),
@@ -231,6 +264,7 @@ def compare_to_reference(run: ResponseRun, reference: ResponseRun) -> Metrics:
     return Metrics(
         label=run.label,
         source=run.source,
+        tessellation=run.tessellation,
         element_size=run.element_size,
         subelements=run.subelements,
         facets=run.facets,
@@ -249,6 +283,7 @@ def write_summary_csv(path: Path, metrics: list[Metrics]) -> None:
             [
                 "label",
                 "source",
+                "tessellation",
                 "element_size_m",
                 "subelements",
                 "facets",
@@ -264,6 +299,7 @@ def write_summary_csv(path: Path, metrics: list[Metrics]) -> None:
                 [
                     item.label,
                     item.source,
+                    "" if item.tessellation is None else item.tessellation,
                     "" if item.element_size is None else item.element_size,
                     "" if item.subelements is None else item.subelements,
                     "" if item.facets is None else item.facets,
@@ -295,14 +331,20 @@ def write_error_vs_element_size(path: Path, metrics: list[Metrics], reference_el
     parts.append(text(28, 34, "Concave Piston Convergence", size=22, weight="700"))
     parts.append(text(28, 58, "Error relative to a fine OpenField reference; lower is better.", size=12, fill="#555"))
     draw_log_axes(parts, plot, x_range, y_range, "element size [mm]", "relative L2 error")
-    draw_polyline_for_metrics(parts, plot, openfield, x_range, y_range, "#D95D39", floor=plot_floor)
-    for item in openfield:
-        draw_marker(parts, plot, item.element_size * 1e3, max(item.relative_l2, plot_floor), x_range, y_range, "#D95D39")
+    legend_y = 95
+    for tessellation in sorted_openfield_tessellations(openfield):
+        color = tessellation_color(tessellation)
+        series = [item for item in openfield if item.tessellation == tessellation]
+        draw_polyline_for_metrics(parts, plot, series, x_range, y_range, color, floor=plot_floor)
+        for item in series:
+            draw_marker(parts, plot, item.element_size * 1e3, max(item.relative_l2, plot_floor), x_range, y_range, color)
+        parts.append(legend_item(610, legend_y, color, f"OpenField {tessellation}"))
+        legend_y += 23
     for item in fieldii:
         draw_marker(parts, plot, item.element_size * 1e3, max(item.relative_l2, plot_floor), x_range, y_range, "#6667AB", shape="square")
-    parts.append(legend_item(610, 95, "#D95D39", "OpenField"))
-    parts.append(legend_item(610, 118, "#6667AB", "Field II", shape="square"))
-    parts.append(text(610, 146, f"reference: {format_mm(reference_element_size)}", size=11, fill="#555"))
+    parts.append(legend_item(610, legend_y, "#6667AB", "Field II", shape="square"))
+    legend_y += 28
+    parts.append(text(610, legend_y, f"reference: {format_mm(reference_element_size)}", size=11, fill="#555"))
     parts.append("</svg>\n")
     path.write_text("".join(parts), encoding="utf-8")
 
@@ -330,18 +372,25 @@ def write_runtime_vs_error(path: Path, metrics: list[Metrics]) -> None:
     parts.append(text(28, 58, "Tradeoff against the fine OpenField reference.", size=12, fill="#555"))
     draw_log_axes(parts, plot, x_range, y_range, "relative L2 error", "median runtime [s]")
     for item in plot_metrics:
-        color = "#6667AB" if item.source == "fieldii" else "#D95D39"
+        color = "#6667AB" if item.source == "fieldii" else tessellation_color(item.tessellation)
         shape = "square" if item.source == "fieldii" else "circle"
         draw_marker(parts, plot, max(item.relative_l2, plot_floor), item.runtime or EPS, x_range, y_range, color, shape=shape)
-    parts.append(legend_item(610, 95, "#D95D39", "OpenField"))
-    parts.append(legend_item(610, 118, "#6667AB", "Field II", shape="square"))
+    legend_y = 95
+    for tessellation in sorted_openfield_tessellations(plot_metrics):
+        parts.append(legend_item(610, legend_y, tessellation_color(tessellation), f"OpenField {tessellation}"))
+        legend_y += 23
+    parts.append(legend_item(610, legend_y, "#6667AB", "Field II", shape="square"))
     parts.append("</svg>\n")
     path.write_text("".join(parts), encoding="utf-8")
 
 
 def write_waveform_overlay(path: Path, runs: list[ResponseRun], reference: ResponseRun) -> None:
     selected = [reference]
-    for label in ("OpenField 0.500 mm", "OpenField 1.000 mm", "Field II xdc_concave 0.500 mm"):
+    for label in (
+        "OpenField polar 0.500 mm",
+        "OpenField cartesian 0.500 mm",
+        "Field II xdc_concave 0.500 mm",
+    ):
         match = next((run for run in runs if run.label == label), None)
         if match is not None and match not in selected:
             selected.append(match)
@@ -378,12 +427,15 @@ def write_metadata(path: Path, *, args: argparse.Namespace, reference: ResponseR
         "sound_speed": float(args.sound_speed),
         "radius": float(args.radius),
         "focal_radius": float(args.focal_radius),
+        "tessellations": unique_tessellations(args.tessellations),
+        "reference_tessellation": normalize_tessellation(args.reference_tessellation),
         "reference_label": reference.label,
         "reference_element_size": float(args.reference_element_size),
         "rows": [
             {
                 "label": item.label,
                 "source": item.source,
+                "tessellation": item.tessellation,
                 "element_size": item.element_size,
                 "subelements": item.subelements,
                 "facets": item.facets,
@@ -532,6 +584,34 @@ def ensure_2d(data: np.ndarray) -> np.ndarray:
     if array.ndim == 1:
         return array[:, None]
     return array
+
+
+def normalize_tessellation(value: str) -> str:
+    if value == "adaptive":
+        return "polar"
+    return value
+
+
+def unique_tessellations(values: list[str]) -> list[str]:
+    unique = []
+    for value in values:
+        tessellation = normalize_tessellation(value)
+        if tessellation not in unique:
+            unique.append(tessellation)
+    return unique
+
+
+def sorted_openfield_tessellations(metrics: list[Metrics]) -> list[str]:
+    present = {item.tessellation for item in metrics if item.source == "openfield" and item.tessellation is not None}
+    preferred = [value for value in ("cartesian", "polar") if value in present]
+    return preferred + sorted(str(value) for value in present - set(preferred))
+
+
+def tessellation_color(tessellation: str | None) -> str:
+    return {
+        "cartesian": "#D95D39",
+        "polar": "#2A9D8F",
+    }.get(tessellation or "", "#D95D39")
 
 
 def load_csv(path: Path) -> np.ndarray:

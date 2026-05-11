@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pytest
 
@@ -24,6 +26,17 @@ def test_piston_tessellation_stays_inside_radius():
     assert np.all(aperture.areas > 0.0)
 
 
+def test_piston_polar_tessellation_fits_circular_boundary():
+    aperture = Piston.adaptive(radius=1.0, element_size=0.1)
+    vertices = np.concatenate([element.vertices for element in aperture.elements])
+    vertex_radii = np.linalg.norm(vertices[:, :2], axis=1)
+
+    assert aperture.metadata["tessellation"] == "polar"
+    assert np.max(vertex_radii) <= 1.0 + 1e-12
+    assert np.allclose(aperture.normals, [0.0, 0.0, 1.0])
+    assert np.sum(aperture.areas) == pytest.approx(math.pi, rel=0.01)
+
+
 def test_concave_piston_uses_fieldii_slope_normals():
     focal_radius = 2.0
     aperture = ConcavePiston(radius=0.8, focal_radius=focal_radius, element_size=0.1)
@@ -40,6 +53,36 @@ def test_concave_piston_uses_fieldii_slope_normals():
     assert np.all(aperture.centers[:, 2] >= 0.0)
     assert np.allclose(first.normal, expected_first_normal)
     assert np.all(aperture.areas > 0.0)
+
+
+def test_concave_piston_polar_tessellation_fits_circular_boundary():
+    radius = 0.8
+    focal_radius = 2.0
+    aperture = ConcavePiston(
+        radius=radius,
+        focal_radius=focal_radius,
+        element_size=0.1,
+        tessellation="polar",
+    )
+
+    vertices = np.concatenate([element.vertices for element in aperture.elements])
+    vertex_radii = np.linalg.norm(vertices[:, :2], axis=1)
+    cap_height = focal_radius - math.sqrt(focal_radius * focal_radius - radius * radius)
+    cap_area = 2.0 * math.pi * focal_radius * cap_height
+
+    assert aperture.metadata["tessellation"] == "polar"
+    assert np.max(vertex_radii) <= radius + 1e-12
+    assert np.array_equal(aperture.subelement_indices, np.arange(len(aperture.elements)))
+    assert all(element.vertices.shape in {(3, 3), (4, 3)} for element in aperture.elements)
+    assert np.all(aperture.normals[:, 2] > 0.0)
+    assert np.sum(aperture.areas) == pytest.approx(cap_area, rel=0.01)
+
+
+def test_concave_piston_adaptive_uses_polar_tessellation():
+    aperture = ConcavePiston.adaptive(radius=0.8, focal_radius=2.0, element_size=0.1)
+
+    assert aperture.metadata["tessellation"] == "polar"
+    assert len(aperture.elements) == len(ConcavePiston(0.8, 2.0, 0.1, tessellation="polar").elements)
 
 
 def test_linear_array_tessellation_and_indexing():

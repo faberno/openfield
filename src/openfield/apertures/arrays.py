@@ -6,7 +6,7 @@ import numpy as np
 
 from .base import Aperture
 from .elements import SubElement
-from .tessellation import quadrilateral_area_normal, rectangular_grid
+from .tessellation import adaptive_rectangular_grid, quadrilateral_area_normal, rectangular_grid
 
 
 class LinearArray(Aperture):
@@ -55,7 +55,14 @@ class FocusedLinearArray(Aperture):
         kerf: float,
         elevation_focus: float,
         subdivisions: tuple[int, int] = (1, 1),
+        *,
+        tessellation: str = "fieldii",
+        max_element_size: float | None = None,
+        max_sagitta: float | None = None,
+        max_normal_angle: float | None = None,
+        max_refinement_depth: int = 8,
     ):
+        tessellation = _normalize_surface_tessellation(tessellation)
         subelements = _linear_multirow_subelements(
             elements_x=elements,
             width=width,
@@ -66,26 +73,38 @@ class FocusedLinearArray(Aperture):
             subdivisions=subdivisions,
             surface_kind="elevation_focused",
             elevation_focus=elevation_focus,
+            tessellation=tessellation,
+            max_element_size=max_element_size,
+            max_sagitta=max_sagitta,
+            max_normal_angle=max_normal_angle,
+            max_refinement_depth=max_refinement_depth,
         )
+        metadata = {
+            "elements": elements,
+            "width": width,
+            "height": height,
+            "kerf": kerf,
+            "elevation_focus": elevation_focus,
+            "subdivisions": subdivisions,
+            "tessellation": tessellation,
+            "max_element_size": max_element_size,
+            "max_sagitta": max_sagitta,
+            "max_normal_angle": max_normal_angle,
+            "max_refinement_depth": max_refinement_depth,
+            "fieldii_leading_pad_samples": -1,
+        }
+        if tessellation == "fieldii":
+            metadata["fieldii_focus_centers"] = _focused_linear_focus_centers(
+                elements=elements,
+                pitch=width + kerf,
+                elevation_focus=elevation_focus,
+                aperture_half_height=height / 2.0,
+            )
         super().__init__(
             elements=subelements,
             physical_element_count=elements,
             name="focused_linear_array",
-            metadata={
-                "elements": elements,
-                "width": width,
-                "height": height,
-                "kerf": kerf,
-                "elevation_focus": elevation_focus,
-                "subdivisions": subdivisions,
-                "fieldii_leading_pad_samples": -1,
-                "fieldii_focus_centers": _focused_linear_focus_centers(
-                    elements=elements,
-                    pitch=width + kerf,
-                    elevation_focus=elevation_focus,
-                    aperture_half_height=height / 2.0,
-                ),
-            },
+            metadata=metadata,
         )
 
 
@@ -143,7 +162,14 @@ class FocusedMultirowArray(Aperture):
         kerf_y: float,
         elevation_focus: float,
         subdivisions: tuple[int, int] = (1, 1),
+        *,
+        tessellation: str = "fieldii",
+        max_element_size: float | None = None,
+        max_sagitta: float | None = None,
+        max_normal_angle: float | None = None,
+        max_refinement_depth: int = 8,
     ):
+        tessellation = _normalize_surface_tessellation(tessellation)
         subelements = _linear_multirow_subelements(
             elements_x=elements_x,
             width=width,
@@ -154,35 +180,45 @@ class FocusedMultirowArray(Aperture):
             subdivisions=subdivisions,
             surface_kind="elevation_focused",
             elevation_focus=elevation_focus,
+            tessellation=tessellation,
+            max_element_size=max_element_size,
+            max_sagitta=max_sagitta,
+            max_normal_angle=max_normal_angle,
+            max_refinement_depth=max_refinement_depth,
         )
+        heights_array = np.asarray(heights, dtype=np.float64)
+        aperture_half_height = (float(np.sum(heights_array)) + kerf_y * (elements_y - 1)) / 2.0
+        metadata = {
+            "elements_x": elements_x,
+            "width": width,
+            "elements_y": elements_y,
+            "heights": list(heights),
+            "kerf_x": kerf_x,
+            "kerf_y": kerf_y,
+            "elevation_focus": elevation_focus,
+            "subdivisions": subdivisions,
+            "tessellation": tessellation,
+            "max_element_size": max_element_size,
+            "max_sagitta": max_sagitta,
+            "max_normal_angle": max_normal_angle,
+            "max_refinement_depth": max_refinement_depth,
+            "fieldii_leading_pad_samples": 0,
+            "fieldii_trailing_pad_samples": 4,
+        }
+        if tessellation == "fieldii":
+            metadata["fieldii_focus_centers"] = _focused_multirow_focus_centers(
+                elements_x=elements_x,
+                width=width,
+                kerf_x=kerf_x,
+                y_positions=_row_centers(heights_array, kerf_y),
+                elevation_focus=elevation_focus,
+                aperture_half_height=aperture_half_height,
+            )
         super().__init__(
             elements=subelements,
             physical_element_count=elements_x * elements_y,
             name="focused_multirow_array",
-            metadata={
-                "elements_x": elements_x,
-                "width": width,
-                "elements_y": elements_y,
-                "heights": list(heights),
-                "kerf_x": kerf_x,
-                "kerf_y": kerf_y,
-                "elevation_focus": elevation_focus,
-                "subdivisions": subdivisions,
-                "fieldii_leading_pad_samples": 0,
-                "fieldii_trailing_pad_samples": 4,
-                "fieldii_focus_centers": _focused_multirow_focus_centers(
-                    elements_x=elements_x,
-                    width=width,
-                    kerf_x=kerf_x,
-                    y_positions=_row_centers(np.asarray(heights, dtype=np.float64), kerf_y),
-                    elevation_focus=elevation_focus,
-                    aperture_half_height=(
-                        float(np.sum(np.asarray(heights, dtype=np.float64)))
-                        + kerf_y * (elements_y - 1)
-                    )
-                    / 2.0,
-                ),
-            },
+            metadata=metadata,
         )
 
 
@@ -197,7 +233,14 @@ class ConvexArray(Aperture):
         kerf: float,
         convex_radius: float,
         subdivisions: tuple[int, int] = (1, 1),
+        *,
+        tessellation: str = "fieldii",
+        max_element_size: float | None = None,
+        max_sagitta: float | None = None,
+        max_normal_angle: float | None = None,
+        max_refinement_depth: int = 8,
     ):
+        tessellation = _normalize_surface_tessellation(tessellation)
         subelements = _convex_multirow_subelements(
             elements_x=elements,
             width=width,
@@ -207,6 +250,11 @@ class ConvexArray(Aperture):
             kerf_y=0.0,
             convex_radius=convex_radius,
             subdivisions=subdivisions,
+            tessellation=tessellation,
+            max_element_size=max_element_size,
+            max_sagitta=max_sagitta,
+            max_normal_angle=max_normal_angle,
+            max_refinement_depth=max_refinement_depth,
         )
         super().__init__(
             elements=subelements,
@@ -219,6 +267,11 @@ class ConvexArray(Aperture):
                 "kerf": kerf,
                 "convex_radius": convex_radius,
                 "subdivisions": subdivisions,
+                "tessellation": tessellation,
+                "max_element_size": max_element_size,
+                "max_sagitta": max_sagitta,
+                "max_normal_angle": max_normal_angle,
+                "max_refinement_depth": max_refinement_depth,
                 "fieldii_trailing_pad_samples": 3,
             },
         )
@@ -236,7 +289,14 @@ class ConvexFocusedArray(Aperture):
         convex_radius: float,
         elevation_focus: float,
         subdivisions: tuple[int, int] = (1, 1),
+        *,
+        tessellation: str = "fieldii",
+        max_element_size: float | None = None,
+        max_sagitta: float | None = None,
+        max_normal_angle: float | None = None,
+        max_refinement_depth: int = 8,
     ):
+        tessellation = _normalize_surface_tessellation(tessellation)
         subelements = _convex_multirow_subelements(
             elements_x=elements,
             width=width,
@@ -247,31 +307,43 @@ class ConvexFocusedArray(Aperture):
             convex_radius=convex_radius,
             elevation_focus=elevation_focus,
             subdivisions=subdivisions,
+            tessellation=tessellation,
+            max_element_size=max_element_size,
+            max_sagitta=max_sagitta,
+            max_normal_angle=max_normal_angle,
+            max_refinement_depth=max_refinement_depth,
         )
+        metadata = {
+            "elements": elements,
+            "width": width,
+            "height": height,
+            "kerf": kerf,
+            "convex_radius": convex_radius,
+            "elevation_focus": elevation_focus,
+            "subdivisions": subdivisions,
+            "tessellation": tessellation,
+            "max_element_size": max_element_size,
+            "max_sagitta": max_sagitta,
+            "max_normal_angle": max_normal_angle,
+            "max_refinement_depth": max_refinement_depth,
+            "fieldii_leading_pad_samples": 0,
+            "fieldii_trailing_pad_samples": 4,
+        }
+        if tessellation == "fieldii":
+            metadata["fieldii_focus_centers"] = _convex_focus_centers(
+                elements_x=elements,
+                width=width,
+                kerf_x=kerf,
+                y_positions=np.array([0.0], dtype=np.float64),
+                convex_radius=convex_radius,
+                elevation_focus=elevation_focus,
+                aperture_half_height=height / 2.0,
+            )
         super().__init__(
             elements=subelements,
             physical_element_count=elements,
             name="convex_focused_array",
-            metadata={
-                "elements": elements,
-                "width": width,
-                "height": height,
-                "kerf": kerf,
-                "convex_radius": convex_radius,
-                "elevation_focus": elevation_focus,
-                "subdivisions": subdivisions,
-                "fieldii_leading_pad_samples": 0,
-                "fieldii_trailing_pad_samples": 4,
-                "fieldii_focus_centers": _convex_focus_centers(
-                    elements_x=elements,
-                    width=width,
-                    kerf_x=kerf,
-                    y_positions=np.array([0.0], dtype=np.float64),
-                    convex_radius=convex_radius,
-                    elevation_focus=elevation_focus,
-                    aperture_half_height=height / 2.0,
-                ),
-            },
+            metadata=metadata,
         )
 
 
@@ -289,7 +361,14 @@ class ConvexFocusedMultirowArray(Aperture):
         convex_radius: float,
         elevation_focus: float,
         subdivisions: tuple[int, int] = (1, 1),
+        *,
+        tessellation: str = "fieldii",
+        max_element_size: float | None = None,
+        max_sagitta: float | None = None,
+        max_normal_angle: float | None = None,
+        max_refinement_depth: int = 8,
     ):
+        tessellation = _normalize_surface_tessellation(tessellation)
         subelements = _convex_multirow_subelements(
             elements_x=elements_x,
             width=width,
@@ -300,36 +379,46 @@ class ConvexFocusedMultirowArray(Aperture):
             convex_radius=convex_radius,
             elevation_focus=elevation_focus,
             subdivisions=subdivisions,
+            tessellation=tessellation,
+            max_element_size=max_element_size,
+            max_sagitta=max_sagitta,
+            max_normal_angle=max_normal_angle,
+            max_refinement_depth=max_refinement_depth,
         )
+        heights_array = np.asarray(heights, dtype=np.float64)
+        aperture_half_height = (float(np.sum(heights_array)) + kerf_y * (elements_y - 1)) / 2.0
+        metadata = {
+            "elements_x": elements_x,
+            "width": width,
+            "elements_y": elements_y,
+            "heights": list(heights),
+            "kerf_x": kerf_x,
+            "kerf_y": kerf_y,
+            "convex_radius": convex_radius,
+            "elevation_focus": elevation_focus,
+            "subdivisions": subdivisions,
+            "tessellation": tessellation,
+            "max_element_size": max_element_size,
+            "max_sagitta": max_sagitta,
+            "max_normal_angle": max_normal_angle,
+            "max_refinement_depth": max_refinement_depth,
+            "fieldii_leading_pad_samples": 0,
+        }
+        if tessellation == "fieldii":
+            metadata["fieldii_focus_centers"] = _convex_focus_centers(
+                elements_x=elements_x,
+                width=width,
+                kerf_x=kerf_x,
+                y_positions=_row_centers(heights_array, kerf_y),
+                convex_radius=convex_radius,
+                elevation_focus=elevation_focus,
+                aperture_half_height=aperture_half_height,
+            )
         super().__init__(
             elements=subelements,
             physical_element_count=elements_x * elements_y,
             name="convex_focused_multirow_array",
-            metadata={
-                "elements_x": elements_x,
-                "width": width,
-                "elements_y": elements_y,
-                "heights": list(heights),
-                "kerf_x": kerf_x,
-                "kerf_y": kerf_y,
-                "convex_radius": convex_radius,
-                "elevation_focus": elevation_focus,
-                "subdivisions": subdivisions,
-                "fieldii_leading_pad_samples": 0,
-                "fieldii_focus_centers": _convex_focus_centers(
-                    elements_x=elements_x,
-                    width=width,
-                    kerf_x=kerf_x,
-                    y_positions=_row_centers(np.asarray(heights, dtype=np.float64), kerf_y),
-                    convex_radius=convex_radius,
-                    elevation_focus=elevation_focus,
-                    aperture_half_height=(
-                        float(np.sum(np.asarray(heights, dtype=np.float64)))
-                        + kerf_y * (elements_y - 1)
-                    )
-                    / 2.0,
-                ),
-            },
+            metadata=metadata,
         )
 
 
@@ -420,8 +509,14 @@ def _linear_multirow_subelements(
     subdivisions: tuple[int, int],
     surface_kind: str,
     elevation_focus: float | None = None,
+    tessellation: str = "fieldii",
+    max_element_size: float | None = None,
+    max_sagitta: float | None = None,
+    max_normal_angle: float | None = None,
+    max_refinement_depth: int = 8,
 ):
     _validate_array_parameters(elements_x, width, elements_y, heights, kerf_x, kerf_y, subdivisions)
+    tessellation = _normalize_surface_tessellation(tessellation)
     heights = np.asarray(heights, dtype=np.float64)
     x_positions = _centered_positions(elements_x, width + kerf_x)
     y_positions = _row_centers(heights, kerf_y)
@@ -447,7 +542,7 @@ def _linear_multirow_subelements(
                     physical_index=physical_index,
                     start_subelement_index=subelement_index,
                 )
-            else:
+            elif tessellation == "fieldii":
                 tessellated = _elevation_focused_grid(
                     x_center=x,
                     y_center=y,
@@ -459,6 +554,22 @@ def _linear_multirow_subelements(
                     elevation_focus=elevation_focus,
                     aperture_half_height=aperture_half_height,
                     angular_subdivision=elements_y == 1,
+                )
+            else:
+                tessellated = _adaptive_elevation_focused_grid(
+                    x_center=x,
+                    y_center=y,
+                    width=width,
+                    height=float(heights[iy]),
+                    subdivisions=subdivisions,
+                    physical_index=physical_index,
+                    start_subelement_index=subelement_index,
+                    elevation_focus=elevation_focus,
+                    aperture_half_height=aperture_half_height,
+                    max_element_size=max_element_size,
+                    max_sagitta=max_sagitta,
+                    max_normal_angle=max_normal_angle,
+                    max_refinement_depth=max_refinement_depth,
                 )
             subelements.extend(tessellated)
             subelement_index += len(tessellated)
@@ -476,10 +587,16 @@ def _convex_multirow_subelements(
     convex_radius: float,
     subdivisions: tuple[int, int],
     elevation_focus: float | None = None,
+    tessellation: str = "fieldii",
+    max_element_size: float | None = None,
+    max_sagitta: float | None = None,
+    max_normal_angle: float | None = None,
+    max_refinement_depth: int = 8,
 ):
     _validate_array_parameters(elements_x, width, elements_y, heights, kerf_x, kerf_y, subdivisions)
     _validate_positive(convex_radius, "convex_radius")
     _validate_convex_extent(elements_x, width, kerf_x, convex_radius)
+    tessellation = _normalize_surface_tessellation(tessellation)
     heights = np.asarray(heights, dtype=np.float64)
     y_positions = _row_centers(heights, kerf_y)
     width_angle = _convex_fieldii_segment_angle(width, convex_radius)
@@ -496,19 +613,38 @@ def _convex_multirow_subelements(
     for iy, y in enumerate(y_positions):
         for ix, angle in enumerate(angle_positions):
             physical_index = iy * elements_x + ix
-            tessellated = _convex_fieldii_grid(
-                angle_center=float(angle),
-                y_center=float(y),
-                width_angle=width_angle,
-                height=float(heights[iy]),
-                convex_radius=convex_radius,
-                subdivisions=subdivisions,
-                physical_index=physical_index,
-                start_subelement_index=subelement_index,
-                elevation_focus=elevation_focus,
-                aperture_half_height=aperture_half_height,
-                angular_elevation_subdivision=elements_y == 1,
-            )
+            if tessellation == "fieldii":
+                tessellated = _convex_fieldii_grid(
+                    angle_center=float(angle),
+                    y_center=float(y),
+                    width_angle=width_angle,
+                    height=float(heights[iy]),
+                    convex_radius=convex_radius,
+                    subdivisions=subdivisions,
+                    physical_index=physical_index,
+                    start_subelement_index=subelement_index,
+                    elevation_focus=elevation_focus,
+                    aperture_half_height=aperture_half_height,
+                    angular_elevation_subdivision=elements_y == 1,
+                )
+            else:
+                tessellated = _adaptive_convex_grid(
+                    angle_center=float(angle),
+                    y_center=float(y),
+                    width_angle=width_angle,
+                    physical_width=width,
+                    height=float(heights[iy]),
+                    convex_radius=convex_radius,
+                    subdivisions=subdivisions,
+                    physical_index=physical_index,
+                    start_subelement_index=subelement_index,
+                    elevation_focus=elevation_focus,
+                    aperture_half_height=aperture_half_height,
+                    max_element_size=max_element_size,
+                    max_sagitta=max_sagitta,
+                    max_normal_angle=max_normal_angle,
+                    max_refinement_depth=max_refinement_depth,
+                )
             subelements.extend(tessellated)
             subelement_index += len(tessellated)
     return tuple(subelements)
@@ -616,6 +752,87 @@ def _convex_fieldii_grid(
             )
             subelement_index += 1
     return tuple(elements)
+
+
+def _adaptive_elevation_focused_grid(
+    *,
+    x_center: float,
+    y_center: float,
+    width: float,
+    height: float,
+    subdivisions: tuple[int, int],
+    physical_index: int,
+    start_subelement_index: int,
+    elevation_focus: float | None,
+    aperture_half_height: float,
+    max_element_size: float | None,
+    max_sagitta: float | None,
+    max_normal_angle: float | None,
+    max_refinement_depth: int,
+) -> tuple[SubElement, ...]:
+    if elevation_focus is None:
+        raise ValueError("elevation_focus must be set for adaptive focused tessellation")
+    y_lower = y_center - height / 2.0
+    y_upper = y_center + height / 2.0
+    edge_limit = _adaptive_max_edge_length(max_element_size, width, height, subdivisions)
+    return adaptive_rectangular_grid(
+        surface=lambda x, y: _elevation_focused_surface_fieldii(
+            x,
+            y,
+            elevation_focus,
+            aperture_half_height,
+        ),
+        u_range=(x_center - width / 2.0, x_center + width / 2.0),
+        v_range=(y_lower, y_upper),
+        physical_index=physical_index,
+        start_subelement_index=start_subelement_index,
+        min_subdivisions=subdivisions,
+        max_edge_length=edge_limit,
+        max_sagitta=_adaptive_max_sagitta(max_sagitta, edge_limit),
+        max_normal_angle=_adaptive_max_normal_angle(max_normal_angle),
+        max_depth=max_refinement_depth,
+    )
+
+
+def _adaptive_convex_grid(
+    *,
+    angle_center: float,
+    y_center: float,
+    width_angle: float,
+    physical_width: float,
+    height: float,
+    convex_radius: float,
+    subdivisions: tuple[int, int],
+    physical_index: int,
+    start_subelement_index: int,
+    elevation_focus: float | None,
+    aperture_half_height: float,
+    max_element_size: float | None,
+    max_sagitta: float | None,
+    max_normal_angle: float | None,
+    max_refinement_depth: int,
+) -> tuple[SubElement, ...]:
+    y_lower = y_center - height / 2.0
+    y_upper = y_center + height / 2.0
+    edge_limit = _adaptive_max_edge_length(max_element_size, physical_width, height, subdivisions)
+    return adaptive_rectangular_grid(
+        surface=lambda angle, y: _convex_surface_from_angle(
+            angle,
+            y,
+            convex_radius,
+            elevation_focus=elevation_focus,
+            aperture_half_height=aperture_half_height,
+        ),
+        u_range=(angle_center - width_angle / 2.0, angle_center + width_angle / 2.0),
+        v_range=(y_lower, y_upper),
+        physical_index=physical_index,
+        start_subelement_index=start_subelement_index,
+        min_subdivisions=subdivisions,
+        max_edge_length=edge_limit,
+        max_sagitta=_adaptive_max_sagitta(max_sagitta, edge_limit),
+        max_normal_angle=_adaptive_max_normal_angle(max_normal_angle),
+        max_depth=max_refinement_depth,
+    )
 
 
 def _elevation_focused_grid(
@@ -844,6 +1061,43 @@ def _validate_array_parameters(
         raise ValueError("heights must contain one value per row")
     if np.any(heights <= 0):
         raise ValueError("all heights must be positive")
+
+
+def _normalize_surface_tessellation(value: str) -> str:
+    normalized = value.lower()
+    if normalized in {"fieldii", "compatibility"}:
+        return "fieldii"
+    if normalized in {"adaptive", "parametric"}:
+        return "adaptive"
+    raise ValueError("tessellation must be 'fieldii' or 'adaptive'")
+
+
+def _adaptive_max_edge_length(
+    max_element_size: float | None,
+    width: float,
+    height: float,
+    subdivisions: tuple[int, int],
+) -> float:
+    if max_element_size is not None:
+        _validate_positive(max_element_size, "max_element_size")
+        return float(max_element_size)
+    return max(width / subdivisions[0], height / subdivisions[1])
+
+
+def _adaptive_max_sagitta(max_sagitta: float | None, edge_limit: float) -> float:
+    if max_sagitta is not None:
+        if max_sagitta < 0:
+            raise ValueError("max_sagitta must be non-negative")
+        return float(max_sagitta)
+    return 0.01 * edge_limit
+
+
+def _adaptive_max_normal_angle(max_normal_angle: float | None) -> float:
+    if max_normal_angle is not None:
+        if max_normal_angle < 0:
+            raise ValueError("max_normal_angle must be non-negative")
+        return float(max_normal_angle)
+    return 0.05
 
 
 def _validate_positive_count(value: int, name: str) -> None:
