@@ -79,13 +79,26 @@ turn the saved Field II/openfield CSV files into SVG plots. Timings are
 end-to-end validation-script timings, including setup and output writing.
 
 ```powershell
-uv run --no-project --with numpy --with numba --with-editable . python validation/run_openfield_benchmarks.py --repeats 3
+uv run --no-project --with-editable . python validation/run_openfield_benchmarks.py --repeats 3
 matlab -batch "addpath('validation'); run_fieldii_benchmarks([], 1)"
 uv run --no-project --with numpy python validation/plot_benchmarks.py --all
 ```
 
 Generated plots and `benchmark_summary.csv` are written to
 `validation/results/plots/`.
+
+## Convergence Studies
+
+The convergence utilities use a fine OpenField result as the reference instead
+of treating Field II as the oracle. This is useful for cases where OpenField's
+exact facet kernel intentionally differs from Field II's compatibility kernel.
+
+```powershell
+uv run --no-project --with-editable . python validation/concave_convergence.py
+```
+
+Generated CSV and SVG files are written to
+`validation/results/convergence/concave_piston/`.
 
 Kernel-mode probes that are not part of the main pass/fail matrix live in
 `validation/diagnostics/`. They are useful for investigating Field II's
