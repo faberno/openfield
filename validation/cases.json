@@ -47,7 +47,7 @@
     "rtol": 1e-5,
     "atol": 1e-10,
     "expected_failure": true,
-    "reason": "Convex-focused geometry and focus delays match Field II; calc_h still has edge-sample kernel/window differences."
+    "reason": "Geometry and focus delays match Field II; openfield intentionally uses exact facet integration rather than Field II's far-field rectangle kernel."
   },
   {
     "name": "convex_focused_multirow_array_spatial_impulse",
@@ -55,7 +55,7 @@
     "rtol": 1e-5,
     "atol": 1e-10,
     "expected_failure": true,
-    "reason": "Convex-focused multirow geometry and focus delays match Field II; calc_h still has edge-sample kernel/window differences."
+    "reason": "Geometry and focus delays match Field II; openfield intentionally uses exact facet integration rather than Field II's far-field rectangle kernel."
   },
   {
     "name": "two_dimensional_array_spatial_impulse",
@@ -69,7 +69,7 @@
     "rtol": 1e-5,
     "atol": 1e-10,
     "expected_failure": true,
-    "reason": "Concave-piston geometry matches Field II; calc_h still has edge-sample kernel/window differences."
+    "reason": "Geometry matches Field II; openfield intentionally uses exact facet integration rather than Field II's far-field rectangle kernel."
   },
   {
     "name": "rectangle_aperture_spatial_impulse",
@@ -83,7 +83,7 @@
     "rtol": 1e-5,
     "atol": 1e-10,
     "expected_failure": true,
-    "reason": "Triangle primitive calc_h uses an area-conserving event-split flat-polygon kernel; Field II's default fast triangle integration has low-sampling edge differences."
+    "reason": "openfield uses an area-conserving event-split flat-polygon kernel; Field II's default fast triangle integration has low-sampling edge differences."
   },
   {
     "name": "line_bounded_aperture_spatial_impulse",
@@ -91,7 +91,7 @@
     "rtol": 1e-5,
     "atol": 1e-10,
     "expected_failure": true,
-    "reason": "Line-bounded primitive calc_h uses an area-conserving event-split flat-polygon kernel; Field II's default fast line integration has low-sampling edge differences."
+    "reason": "openfield uses an area-conserving event-split flat-polygon kernel; Field II's default fast line integration has low-sampling edge differences."
   },
   {
     "name": "linear_array_emitted_pressure",

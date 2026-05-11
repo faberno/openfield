@@ -1,7 +1,7 @@
 import numpy as np
 
 from openfield import Medium, Simulation
-from openfield.apertures import LineBoundedAperture, Piston, TriangleAperture
+from openfield.apertures import LineBoundedAperture, Piston, RectangleAperture, TriangleAperture
 
 
 def test_simulation_spatial_impulse_response_shape_and_time_axis():
@@ -59,6 +59,56 @@ def test_triangle_and_line_bounded_flat_polygon_responses_match():
     )
     assert np.allclose(triangle_response.samples[shared_samples:], 0.0)
     assert np.allclose(line_response.samples[shared_samples:], 0.0)
+
+
+def test_flat_rectangle_response_matches_exact_triangle_facets():
+    sim = Simulation(sampling_frequency=100e6, medium=Medium(sound_speed=1540.0))
+    rectangle_vertices = np.array(
+        [[[-0.5e-3, -0.25e-3, 0.0], [0.5e-3, -0.25e-3, 0.0], [0.5e-3, 0.25e-3, 0.0], [-0.5e-3, 0.25e-3, 0.0]]],
+        dtype=np.float64,
+    )
+    triangle_vertices = np.array(
+        [
+            [rectangle_vertices[0, 0], rectangle_vertices[0, 1], rectangle_vertices[0, 2]],
+            [rectangle_vertices[0, 0], rectangle_vertices[0, 2], rectangle_vertices[0, 3]],
+        ],
+        dtype=np.float64,
+    )
+    points = [[0.0, 0.0, 30e-3], [2e-3, 0.0, 40e-3]]
+
+    rectangle = sim.spatial_impulse_response(RectangleAperture(rectangle_vertices), points)
+    triangles = sim.spatial_impulse_response(TriangleAperture(triangle_vertices, physical_indices=[0, 0]), points)
+
+    shared_samples = min(rectangle.sample_count, triangles.sample_count)
+    assert np.allclose(rectangle.start_time, triangles.start_time)
+    assert np.allclose(rectangle.samples[:shared_samples], triangles.samples[:shared_samples])
+    assert np.allclose(rectangle.samples[shared_samples:], 0.0)
+    assert np.allclose(triangles.samples[shared_samples:], 0.0)
+
+
+def test_nonplanar_rectangle_response_is_triangulated():
+    sim = Simulation(sampling_frequency=100e6, medium=Medium(sound_speed=1540.0))
+    rectangle_vertices = np.array(
+        [[[-0.5e-3, -0.25e-3, 0.0], [0.5e-3, -0.25e-3, 0.1e-3], [0.5e-3, 0.25e-3, 0.0], [-0.5e-3, 0.25e-3, 0.05e-3]]],
+        dtype=np.float64,
+    )
+    triangle_vertices = np.array(
+        [
+            [rectangle_vertices[0, 0], rectangle_vertices[0, 1], rectangle_vertices[0, 2]],
+            [rectangle_vertices[0, 0], rectangle_vertices[0, 2], rectangle_vertices[0, 3]],
+        ],
+        dtype=np.float64,
+    )
+    points = [[0.0, 0.0, 30e-3], [2e-3, 0.0, 40e-3]]
+
+    rectangle = sim.spatial_impulse_response(RectangleAperture(rectangle_vertices), points)
+    triangles = sim.spatial_impulse_response(TriangleAperture(triangle_vertices, physical_indices=[0, 0]), points)
+
+    shared_samples = min(rectangle.sample_count, triangles.sample_count)
+    assert np.allclose(rectangle.start_time, triangles.start_time)
+    assert np.allclose(rectangle.samples[:shared_samples], triangles.samples[:shared_samples])
+    assert np.allclose(rectangle.samples[shared_samples:], 0.0)
+    assert np.allclose(triangles.samples[shared_samples:], 0.0)
 
 
 def test_flat_polygon_time_axis_includes_projected_interior_support():

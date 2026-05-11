@@ -17,6 +17,21 @@ def pulse_echo_response(simulation, *, transmit, receive, points) -> TimeRespons
     transmit_response = simulation.spatial_impulse_response(transmit, points)
     receive_response = simulation.spatial_impulse_response(receive, points)
 
+    return _pulse_echo_from_spatial_responses(
+        transmit_response,
+        receive_response,
+        transmit=transmit,
+        receive=receive,
+    )
+
+
+def _pulse_echo_from_spatial_responses(
+    transmit_response: TimeResponse,
+    receive_response: TimeResponse,
+    *,
+    transmit,
+    receive,
+) -> TimeResponse:
     response = _convolve_pointwise(transmit_response, receive_response)
     response = convolve_time_response(response, transmit.excitation)
     response = convolve_time_response(response, transmit.impulse_response)
@@ -46,6 +61,27 @@ def _weighted_scatterer_response(simulation, *, transmit, receive, points, ampli
     points = _points_array(points)
     amplitudes = _amplitudes_array(amplitudes, points.shape[0])
     response = pulse_echo_response(simulation, transmit=transmit, receive=receive, points=points)
+    return _weight_point_responses(response, amplitudes)
+
+
+def _weighted_scatterer_response_from_spatial(
+    transmit_response: TimeResponse,
+    receive_response: TimeResponse,
+    *,
+    transmit,
+    receive,
+    amplitudes,
+) -> TimeResponse:
+    response = _pulse_echo_from_spatial_responses(
+        transmit_response,
+        receive_response,
+        transmit=transmit,
+        receive=receive,
+    )
+    return _weight_point_responses(response, amplitudes)
+
+
+def _weight_point_responses(response: TimeResponse, amplitudes: np.ndarray) -> TimeResponse:
     samples = response.samples @ amplitudes
     return TimeResponse(
         samples=samples[:, None],
@@ -57,12 +93,15 @@ def _weighted_scatterer_response(simulation, *, transmit, receive, points, ampli
 def receive_channel_responses(simulation, *, transmit, receive, points, amplitudes) -> TimeResponse:
     """Calculate one scatterer RF trace per receive physical element."""
 
+    points = _points_array(points)
+    amplitudes = _amplitudes_array(amplitudes, points.shape[0])
+    transmit_response = simulation.spatial_impulse_response(transmit, points)
     responses = [
-        _weighted_scatterer_response(
-            simulation,
+        _weighted_scatterer_response_from_spatial(
+            transmit_response,
+            simulation.spatial_impulse_response(receive.select_physical_elements([receive_index]), points),
             transmit=transmit,
-            receive=receive.select_physical_elements([receive_index]),
-            points=points,
+            receive=receive,
             amplitudes=amplitudes,
         )
         for receive_index in range(receive.physical_element_count)
@@ -86,18 +125,34 @@ def full_matrix_capture(
         raise ValueError("decimation_factor must be at least one")
 
     responses = []
-    for transmit_index in range(transmit.physical_element_count):
-        transmit_element = transmit.select_physical_elements([transmit_index])
-        for receive_index in range(receive.physical_element_count):
-            responses.append(
-                scatterer_response(
-                    simulation,
-                    transmit=transmit_element,
-                    receive=receive.select_physical_elements([receive_index]),
-                    points=points,
-                    amplitudes=amplitudes,
-                )
+    points = _points_array(points)
+    amplitudes = _amplitudes_array(amplitudes, points.shape[0])
+    transmit_elements = [
+        transmit.select_physical_elements([transmit_index])
+        for transmit_index in range(transmit.physical_element_count)
+    ]
+    receive_elements = [
+        receive.select_physical_elements([receive_index])
+        for receive_index in range(receive.physical_element_count)
+    ]
+    transmit_responses = [
+        simulation.spatial_impulse_response(transmit_element, points)
+        for transmit_element in transmit_elements
+    ]
+    receive_responses = [
+        simulation.spatial_impulse_response(receive_element, points)
+        for receive_element in receive_elements
+    ]
+    for transmit_index, transmit_element in enumerate(transmit_elements):
+        for receive_index, receive_element in enumerate(receive_elements):
+            response = _weighted_scatterer_response_from_spatial(
+                transmit_responses[transmit_index],
+                receive_responses[receive_index],
+                transmit=transmit_element,
+                receive=receive_element,
+                amplitudes=amplitudes,
             )
+            responses.append(_trim_trailing_samples(response, 1))
     response = _stack_time_responses(responses)
     # Field II's calc_scat_all starts two samples later than the equivalent
     # per-channel scatterer traces.
