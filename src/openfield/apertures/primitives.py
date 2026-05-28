@@ -25,7 +25,7 @@ class Piston(Aperture):
         radius: float,
         element_size: float,
         *,
-        tessellation: str = "cartesian",
+        tessellation: str = "polar",
         min_angular_segments: int = 8,
     ):
         if min_angular_segments < 3:
@@ -87,7 +87,7 @@ class ConcavePiston(Aperture):
         focal_radius: float,
         element_size: float,
         *,
-        tessellation: str = "cartesian",
+        tessellation: str = "polar",
         min_angular_segments: int = 8,
     ):
         if radius <= 0:

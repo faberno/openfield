@@ -30,6 +30,7 @@ def _aperture(case_name: str):
             kerf=0.03e-3,
             elevation_focus=20e-3,
             subdivisions=(1, 4),
+            tessellation="fieldii",
         ).focused_at(FOCUS)
 
     if case_name == "focused_multirow_array_geometry":
@@ -42,6 +43,7 @@ def _aperture(case_name: str):
             kerf_y=0.05e-3,
             elevation_focus=20e-3,
             subdivisions=(1, 2),
+            tessellation="fieldii",
         ).focused_at(FOCUS)
 
     if case_name == "convex_array_geometry":
@@ -52,6 +54,7 @@ def _aperture(case_name: str):
             kerf=0.03e-3,
             convex_radius=25e-3,
             subdivisions=(1, 3),
+            tessellation="fieldii",
         ).focused_at(FOCUS)
 
     if case_name == "convex_focused_array_geometry":
@@ -63,6 +66,7 @@ def _aperture(case_name: str):
             convex_radius=25e-3,
             elevation_focus=20e-3,
             subdivisions=(1, 4),
+            tessellation="fieldii",
         ).focused_at(FOCUS)
 
     if case_name == "convex_focused_multirow_array_geometry":
@@ -76,9 +80,15 @@ def _aperture(case_name: str):
             convex_radius=25e-3,
             elevation_focus=20e-3,
             subdivisions=(1, 2),
+            tessellation="fieldii",
         ).focused_at(FOCUS)
 
     if case_name == "concave_piston_geometry":
-        return ConcavePiston(radius=5e-3, focal_radius=30e-3, element_size=0.5e-3)
+        return ConcavePiston(
+            radius=5e-3,
+            focal_radius=30e-3,
+            element_size=0.5e-3,
+            tessellation="cartesian",
+        )
 
     raise ValueError(f"unknown aperture geometry case: {case_name}")

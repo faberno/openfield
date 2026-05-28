@@ -87,6 +87,7 @@ def spatial_impulse_response(simulation, *, aperture, points) -> TimeResponse:
         subelement_delays = aperture.subelement_delays.values_for(aperture)
 
     packed = _pack_aperture(aperture)
+    _validate_points_do_not_coincide_with_nonfacet_elements(points, packed)
     prepared = _prepare_facets(points, packed, sound_speed)
 
     start_time, sample_count = _fieldii_like_time_axis(
@@ -186,6 +187,16 @@ def _pack_aperture(aperture) -> _PackedAperture:
         facet_vertex_counts=np.asarray(facet_vertex_counts, dtype=np.int64),
         facet_normals=np.asarray(facet_normals, dtype=np.float64).reshape((-1, 3)),
     )
+
+
+def _validate_points_do_not_coincide_with_nonfacet_elements(points: np.ndarray, packed: _PackedAperture) -> None:
+    if bool(np.all(packed.element_has_vertices)):
+        return
+    nonfacet_elements = ~packed.element_has_vertices
+    deltas = points[:, None, :] - packed.centers[None, :, :]
+    distances_squared = np.sum(deltas * deltas, axis=2)
+    if bool(np.any((distances_squared == 0.0) & nonfacet_elements[None, :])):
+        raise ValueError("field points must not coincide with aperture elements")
 
 
 def _prepare_facets(points: np.ndarray, packed: _PackedAperture, sound_speed: float) -> _PreparedFacetArrays:

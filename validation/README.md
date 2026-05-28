@@ -95,19 +95,22 @@ exact facet kernel intentionally differs from Field II's compatibility kernel.
 
 ```powershell
 uv run --no-project --with-editable . python validation/concave_convergence.py
+uv run --no-project --with-editable . python validation/adaptive_convergence.py --repeats 3
 ```
 
-By default this compares the Field II-style Cartesian concave mesh with the new
+The concave-piston study compares the Field II-style Cartesian mesh with the
 boundary-fitted polar mesh and uses a fine polar OpenField solve as the
 reference. Use `--tessellations cartesian` or `--tessellations polar` to narrow
-the run.
+that run.
 
-Other curved aperture families expose the same idea as opt-in geometry modes:
-`Piston.adaptive(...)`, `ConcavePiston.adaptive(...)`, and
-`tessellation="adaptive"` for focused/convex array constructors.
+Curved and circular apertures use adaptive or boundary-fitted tessellations by
+default. Field II compatibility validation explicitly requests
+`tessellation="cartesian"` for pistons/concave pistons and
+`tessellation="fieldii"` for focused/convex arrays.
 
 Generated CSV and SVG files are written to
-`validation/results/convergence/concave_piston/`.
+`validation/results/convergence/concave_piston/` and
+`validation/results/convergence/adaptive_curved/`.
 
 Kernel-mode probes that are not part of the main pass/fail matrix live in
 `validation/diagnostics/`. They are useful for investigating Field II's

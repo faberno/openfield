@@ -20,6 +20,7 @@ def test_piston_tessellation_stays_inside_radius():
     radii = np.linalg.norm(aperture.centers[:, :2], axis=1)
 
     assert aperture.physical_element_count == 1
+    assert aperture.metadata["tessellation"] == "polar"
     assert len(aperture.elements) > 0
     assert np.all(radii <= 1.0)
     assert np.allclose(aperture.normals, [0.0, 0.0, 1.0])
@@ -39,7 +40,12 @@ def test_piston_polar_tessellation_fits_circular_boundary():
 
 def test_concave_piston_uses_fieldii_slope_normals():
     focal_radius = 2.0
-    aperture = ConcavePiston(radius=0.8, focal_radius=focal_radius, element_size=0.1)
+    aperture = ConcavePiston(
+        radius=0.8,
+        focal_radius=focal_radius,
+        element_size=0.1,
+        tessellation="cartesian",
+    )
 
     first = aperture.elements[0]
     edge_x = first.vertices[1] - first.vertices[0]
@@ -58,12 +64,7 @@ def test_concave_piston_uses_fieldii_slope_normals():
 def test_concave_piston_polar_tessellation_fits_circular_boundary():
     radius = 0.8
     focal_radius = 2.0
-    aperture = ConcavePiston(
-        radius=radius,
-        focal_radius=focal_radius,
-        element_size=0.1,
-        tessellation="polar",
-    )
+    aperture = ConcavePiston(radius=radius, focal_radius=focal_radius, element_size=0.1)
 
     vertices = np.concatenate([element.vertices for element in aperture.elements])
     vertex_radii = np.linalg.norm(vertices[:, :2], axis=1)

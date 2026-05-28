@@ -43,6 +43,7 @@ def _aperture(case_name: str):
             kerf=0.03e-3,
             elevation_focus=20e-3,
             subdivisions=(1, 4),
+            tessellation="fieldii",
         ).focused_at(FOCUS)
 
     if case_name == "linear_multirow_array_spatial_impulse":
@@ -66,6 +67,7 @@ def _aperture(case_name: str):
             kerf_y=0.05e-3,
             elevation_focus=20e-3,
             subdivisions=(1, 2),
+            tessellation="fieldii",
         ).focused_at(FOCUS)
 
     if case_name == "convex_array_spatial_impulse":
@@ -76,6 +78,7 @@ def _aperture(case_name: str):
             kerf=0.03e-3,
             convex_radius=25e-3,
             subdivisions=(1, 3),
+            tessellation="fieldii",
         ).focused_at(FOCUS)
 
     if case_name == "convex_focused_array_spatial_impulse":
@@ -87,6 +90,7 @@ def _aperture(case_name: str):
             convex_radius=25e-3,
             elevation_focus=20e-3,
             subdivisions=(1, 4),
+            tessellation="fieldii",
         ).focused_at(FOCUS)
 
     if case_name == "convex_focused_multirow_array_spatial_impulse":
@@ -100,6 +104,7 @@ def _aperture(case_name: str):
             convex_radius=25e-3,
             elevation_focus=20e-3,
             subdivisions=(1, 2),
+            tessellation="fieldii",
         ).focused_at(FOCUS)
 
     if case_name == "two_dimensional_array_spatial_impulse":
@@ -124,7 +129,12 @@ def _aperture(case_name: str):
         ).focused_at(FOCUS)
 
     if case_name == "concave_piston_spatial_impulse":
-        return ConcavePiston(radius=5e-3, focal_radius=30e-3, element_size=0.5e-3)
+        return ConcavePiston(
+            radius=5e-3,
+            focal_radius=30e-3,
+            element_size=0.5e-3,
+            tessellation="cartesian",
+        )
 
     if case_name == "rectangle_aperture_spatial_impulse":
         rect = np.array(

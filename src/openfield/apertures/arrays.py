@@ -56,7 +56,7 @@ class FocusedLinearArray(Aperture):
         elevation_focus: float,
         subdivisions: tuple[int, int] = (1, 1),
         *,
-        tessellation: str = "fieldii",
+        tessellation: str = "adaptive",
         max_element_size: float | None = None,
         max_sagitta: float | None = None,
         max_normal_angle: float | None = None,
@@ -163,7 +163,7 @@ class FocusedMultirowArray(Aperture):
         elevation_focus: float,
         subdivisions: tuple[int, int] = (1, 1),
         *,
-        tessellation: str = "fieldii",
+        tessellation: str = "adaptive",
         max_element_size: float | None = None,
         max_sagitta: float | None = None,
         max_normal_angle: float | None = None,
@@ -234,7 +234,7 @@ class ConvexArray(Aperture):
         convex_radius: float,
         subdivisions: tuple[int, int] = (1, 1),
         *,
-        tessellation: str = "fieldii",
+        tessellation: str = "adaptive",
         max_element_size: float | None = None,
         max_sagitta: float | None = None,
         max_normal_angle: float | None = None,
@@ -290,7 +290,7 @@ class ConvexFocusedArray(Aperture):
         elevation_focus: float,
         subdivisions: tuple[int, int] = (1, 1),
         *,
-        tessellation: str = "fieldii",
+        tessellation: str = "adaptive",
         max_element_size: float | None = None,
         max_sagitta: float | None = None,
         max_normal_angle: float | None = None,
@@ -362,7 +362,7 @@ class ConvexFocusedMultirowArray(Aperture):
         elevation_focus: float,
         subdivisions: tuple[int, int] = (1, 1),
         *,
-        tessellation: str = "fieldii",
+        tessellation: str = "adaptive",
         max_element_size: float | None = None,
         max_sagitta: float | None = None,
         max_normal_angle: float | None = None,
@@ -1089,7 +1089,7 @@ def _adaptive_max_sagitta(max_sagitta: float | None, edge_limit: float) -> float
         if max_sagitta < 0:
             raise ValueError("max_sagitta must be non-negative")
         return float(max_sagitta)
-    return 0.01 * edge_limit
+    return 0.0002 * edge_limit
 
 
 def _adaptive_max_normal_angle(max_normal_angle: float | None) -> float:

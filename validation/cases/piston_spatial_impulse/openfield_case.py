@@ -15,7 +15,7 @@ from python_helpers.io import write_time_response
 CASE_NAME = "piston_spatial_impulse"
 
 sim = Simulation(sampling_frequency=100e6, medium=Medium(sound_speed=1540.0))
-aperture = Piston(radius=5e-3, element_size=0.5e-3)
+aperture = Piston(radius=5e-3, element_size=0.5e-3, tessellation="cartesian")
 points = [
     [0.0, 0.0, 30e-3],
     [0.0, 0.0, 40e-3],

@@ -13,10 +13,25 @@ as polygon facets; non-planar polygons are triangulated. This favors a simple,
 convergent model over reproducing Field II's legacy far-field rectangle
 approximation.
 
-Curved and circular apertures also provide opt-in adaptive tessellations. The
-legacy Field II-style layouts remain available for compatibility, while
-`tessellation="adaptive"` or the `.adaptive(...)` constructors use
-boundary-fitted or curvature-refined facets.
+Curved and circular apertures use adaptive or boundary-fitted tessellations by
+default. Field II-style layouts remain available for compatibility through
+explicit options such as `tessellation="cartesian"` for pistons and
+`tessellation="fieldii"` for focused or convex arrays.
+
+```python
+from openfield.apertures import ConvexFocusedArray, Piston
+
+piston = Piston(radius=5e-3, element_size=0.5e-3)
+
+probe = ConvexFocusedArray(
+    elements=64,
+    width=0.3e-3,
+    height=5e-3,
+    kerf=0.03e-3,
+    convex_radius=25e-3,
+    elevation_focus=20e-3,
+)
+```
 
 Initial aperture geometry support includes:
 

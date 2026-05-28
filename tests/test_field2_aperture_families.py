@@ -23,6 +23,7 @@ def test_focused_linear_array_curves_in_elevation():
         kerf=0.05,
         elevation_focus=2.0,
         subdivisions=(1, 4),
+        tessellation="fieldii",
     )
 
     assert aperture.physical_element_count == 3
@@ -38,6 +39,7 @@ def test_focused_linear_array_adaptive_tessellation_refines_elevation_curvature(
         height=0.8,
         kerf=0.05,
         elevation_focus=2.0,
+        tessellation="fieldii",
     )
     adaptive = FocusedLinearArray(
         elements=3,
@@ -83,6 +85,7 @@ def test_focused_multirow_array_has_curved_rows():
         kerf_y=0.02,
         elevation_focus=2.0,
         subdivisions=(1, 2),
+        tessellation="fieldii",
     )
 
     assert aperture.physical_element_count == 6
@@ -117,6 +120,7 @@ def test_convex_array_fans_normals_in_azimuth():
         kerf=0.02,
         convex_radius=5.0,
         subdivisions=(2, 1),
+        tessellation="fieldii",
     )
 
     assert aperture.physical_element_count == 5
@@ -133,6 +137,7 @@ def test_convex_array_adaptive_tessellation_refines_azimuth_curvature():
         height=0.5,
         kerf=0.02,
         convex_radius=5.0,
+        tessellation="fieldii",
     )
     adaptive = ConvexArray(
         elements=5,
@@ -159,6 +164,7 @@ def test_convex_array_uses_fieldii_curved_rectangle_convention():
         kerf=0.03e-3,
         convex_radius=25e-3,
         subdivisions=(1, 3),
+        tessellation="fieldii",
     )
 
     assert np.allclose(
@@ -179,6 +185,7 @@ def test_convex_focused_array_combines_azimuth_and_elevation_curvature():
         convex_radius=5.0,
         elevation_focus=2.0,
         subdivisions=(2, 3),
+        tessellation="fieldii",
     )
 
     assert aperture.physical_element_count == 3
@@ -217,6 +224,7 @@ def test_convex_focused_multirow_array_indexes_all_rows():
         convex_radius=5.0,
         elevation_focus=2.0,
         subdivisions=(1, 2),
+        tessellation="fieldii",
     )
 
     assert aperture.physical_element_count == 4

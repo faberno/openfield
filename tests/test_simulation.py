@@ -1,7 +1,9 @@
 import numpy as np
+import pytest
 
 from openfield import Medium, Simulation
 from openfield.apertures import (
+    Aperture,
     ConcavePiston,
     ConvexArray,
     ConvexFocusedArray,
@@ -11,6 +13,7 @@ from openfield.apertures import (
     LineBoundedAperture,
     Piston,
     RectangleAperture,
+    SubElement,
     TriangleAperture,
 )
 
@@ -92,6 +95,25 @@ def test_adaptive_curved_apertures_produce_spatial_impulse_responses():
         assert response.samples.shape[1] == 1
         assert np.all(np.isfinite(response.samples))
         assert np.any(response.samples[:, 0] != 0.0)
+
+
+def test_nonfacet_subelement_rejects_coincident_field_point():
+    sim = Simulation(sampling_frequency=100e6, medium=Medium(sound_speed=1540.0))
+    aperture = Aperture(
+        elements=(
+            SubElement(
+                center=[0.0, 0.0, 0.0],
+                normal=[0.0, 0.0, 1.0],
+                area=1.0e-6,
+                physical_index=0,
+                subelement_index=0,
+            ),
+        ),
+        physical_element_count=1,
+    )
+
+    with pytest.raises(ValueError, match="must not coincide"):
+        sim.spatial_impulse_response(aperture, [[0.0, 0.0, 0.0]])
 
 
 def test_triangle_and_line_bounded_flat_polygon_responses_match():

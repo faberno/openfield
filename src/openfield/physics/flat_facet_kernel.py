@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
-from numba import njit
+from numba import njit, prange
 
 
 @njit(cache=True)
@@ -457,7 +457,7 @@ def add_exact_flat_polygon_response(
                 output[index] += weight_scale * baffle_scale * sampling_frequency * integral
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def prepare_flat_facets(points, facet_vertices, facet_vertex_counts, facet_normals, sound_speed):
     point_count = points.shape[0]
     facet_count = facet_vertices.shape[0]
@@ -477,7 +477,7 @@ def prepare_flat_facets(points, facet_vertices, facet_vertex_counts, facet_norma
     support_start = np.empty((point_count, facet_count), dtype=np.float64)
     support_end = np.empty((point_count, facet_count), dtype=np.float64)
 
-    for point_index in range(point_count):
+    for point_index in prange(point_count):
         point = points[point_index]
         for facet_index in range(facet_count):
             vertex_count = facet_vertex_counts[facet_index]
@@ -639,7 +639,7 @@ def _add_exact_flat_polygon_response_column(
             output[index, point_index] += weight_scale * baffle_scale * sampling_frequency * integral
 
 
-@njit(cache=True)
+@njit(cache=True, parallel=True)
 def add_spatial_impulse_response(
     output,
     points,
@@ -672,7 +672,7 @@ def add_spatial_impulse_response(
     weights,
     has_soft_baffle,
 ):
-    for point_index in range(points.shape[0]):
+    for point_index in prange(points.shape[0]):
         point = points[point_index]
         for element_index in range(centers.shape[0]):
             physical_index = physical_indices[element_index]
@@ -742,7 +742,7 @@ def add_spatial_impulse_response(
                 dz = point[2] - centers[element_index, 2]
                 geometric_distance = math.sqrt(dx * dx + dy * dy + dz * dz)
                 if geometric_distance == 0.0:
-                    raise ValueError("field points must not coincide with aperture elements")
+                    continue
                 arrival_time = geometric_distance / sound_speed + delay
                 sample_index = int(math.floor((arrival_time - start_time) * sampling_frequency + 0.5))
                 if 0 <= sample_index < output.shape[0]:
